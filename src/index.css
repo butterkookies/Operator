@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+body {
+  background-color: #e6e4df;
+  color: #111827;
+}
+
+body.zen-mode {
+  background-color: #1a1b26;
+  color: #a9b1d6;
+}
