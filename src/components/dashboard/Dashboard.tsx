@@ -1,42 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Moon, Play, RotateCcw, FileText, Pause, User, Settings, Check, Trash2, X, LogOut, Calendar, Filter, BookOpen } from 'lucide-react';
+import { Moon, User, Check, Trash2, X, LogOut, Calendar, Filter, Key, Eye, EyeOff, BookOpen } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Session } from '@supabase/supabase-js';
 import { TodayView, WeekView, MonthView, YearView } from './CalendarViews';
-
-type Task = {
-  id: string;
-  user_id: string;
-  title: string;
-  is_completed: boolean;
-  created_at: string;
-};
-
-type GoogleEvent = {
-  id: string;
-  summary: string;
-  start: { dateTime?: string; date?: string };
-  end: { dateTime?: string; date?: string };
-  htmlLink: string;
-  calendarColor?: string;
-};
-
-type GoogleCalendar = {
-  id: string;
-  summary: string;
-  backgroundColor?: string;
-  primary?: boolean;
-};
+import { PomodoroEngine } from './PomodoroEngine';
+import { getDriveSettings, saveDriveSettings, type DriveSettings } from '../../lib/googleDrive';
+import { useSupabaseTasks } from '../../hooks/useSupabaseTasks';
+import { useGoogleCalendar } from '../../hooks/useGoogleCalendar';
 
 export function Dashboard({ session }: { session: Session }) {
   const [isZenMode, setIsZenMode] = useState(false);
-  const [activeTab, setActiveTab] = useState<'tasks' | 'vault'>('tasks');
   const [centerTab, setCenterTab] = useState<'focus' | 'calendar'>('calendar');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  
-  // Pomodoro State
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
-  const [isRunning, setIsRunning] = useState(false);
+  const [driveSettings, setDriveSettings] = useState<DriveSettings>({ drive_folder_id: null, drive_sync_enabled: false });
+  const [isDriveToggling, setIsDriveToggling] = useState(false);
+  const [geminiKeys, setGeminiKeys] = useState<{email: string, key: string}[]>([]);
+  const [newKeyEmail, setNewKeyEmail] = useState('');
+  const [newKeyToken, setNewKeyToken] = useState('');
+  const [geminiKeySaved, setGeminiKeySaved] = useState(false);
+  const [showGeminiKeyMap, setShowGeminiKeyMap] = useState<Record<number, boolean>>({});
+  const [isSavingGeminiKey, setIsSavingGeminiKey] = useState(false);
 
   // Console state
   const [consoleLogs, setConsoleLogs] = useState([
@@ -46,181 +29,47 @@ export function Dashboard({ session }: { session: Session }) {
   ]);
   const [inputValue, setInputValue] = useState('');
 
-  // Tasks state
-  const [tasks, setTasks] = useState<Task[]>([]);
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [isLoadingTasks, setIsLoadingTasks] = useState(true);
-
-  // Calendar state
-  const [calendarEvents, setCalendarEvents] = useState<GoogleEvent[]>([]);
-  const [isCalendarLoading, setIsCalendarLoading] = useState(false);
-  const [calendarError, setCalendarError] = useState<string | null>(null);
-  const [calendarListError, setCalendarListError] = useState<string | null>(null);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [calendarTimeframe, setCalendarTimeframe] = useState<'today' | 'week' | 'month' | 'year'>('week');
-  
-  // Multi-Calendar state
-  const [availableCalendars, setAvailableCalendars] = useState<GoogleCalendar[]>([]);
-  const [selectedCalendarIds, setSelectedCalendarIds] = useState<Set<string>>(() => {
-    try {
-      const saved = localStorage.getItem('operator_selected_calendars');
-      if (saved) return new Set(JSON.parse(saved));
-    } catch (e) {}
-    return new Set();
-  });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  // Save to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('operator_selected_calendars', JSON.stringify(Array.from(selectedCalendarIds)));
-  }, [selectedCalendarIds]);
+  const {
+    tasks,
+    isLoadingTasks,
+    addTask,
+    handleSessionComplete,
+    toggleTask,
+    deleteTask
+  } = useSupabaseTasks(session);
 
-  // Pomodoro countdown logic
+  const {
+    calendarEvents,
+    isCalendarLoading,
+    calendarError,
+    calendarListError,
+    availableCalendars,
+    selectedCalendarIds,
+    setSelectedCalendarIds
+  } = useGoogleCalendar(session, calendarTimeframe);
+
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isRunning && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft(prev => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
-      setIsRunning(false);
+    if (isZenMode) {
+      document.body.classList.add('zen-mode');
+    } else {
+      document.body.classList.remove('zen-mode');
     }
-    return () => clearInterval(interval);
-  }, [isRunning, timeLeft]);
+  }, [isZenMode]);
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  useEffect(() => {
-    if (session.provider_token) {
-      fetchAvailableCalendars();
-    }
-  }, [session.provider_token]);
-
-  useEffect(() => {
-    if (session.provider_token && selectedCalendarIds.size > 0) {
-      fetchCalendarEvents();
-    } else if (selectedCalendarIds.size === 0) {
-      setCalendarEvents([]);
-    }
-  }, [calendarTimeframe, session.provider_token, selectedCalendarIds]);
-
-  const fetchTasks = async () => {
-    setIsLoadingTasks(true);
-    const { data, error } = await supabase
-      .from('tasks')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (!error) setTasks(data || []);
-    setIsLoadingTasks(false);
-  };
-
-  const addTask = async (e: React.FormEvent) => {
+  const handleFormAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTaskTitle.trim()) return;
-    const newTask = { user_id: session.user.id, title: newTaskTitle.trim(), is_completed: false };
-    const tempId = crypto.randomUUID();
-    setTasks(prev => [{ ...newTask, id: tempId, created_at: new Date().toISOString() }, ...prev]);
+    await addTask(newTaskTitle);
     setNewTaskTitle('');
-    const { data, error } = await supabase.from('tasks').insert([newTask]).select().single();
-    if (!error && data) setTasks(prev => prev.map(t => t.id === tempId ? data : t));
-  };
-
-  const toggleTask = async (task: Task) => {
-    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, is_completed: !t.is_completed } : t));
-    await supabase.from('tasks').update({ is_completed: !task.is_completed }).eq('id', task.id);
-  };
-
-  const deleteTask = async (id: string) => {
-    setTasks(prev => prev.filter(t => t.id !== id));
-    await supabase.from('tasks').delete().eq('id', id);
-  };
-
-  const fetchAvailableCalendars = async () => {
-    if (!session.provider_token) return;
-    try {
-      setCalendarListError(null);
-      const response = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
-        headers: { Authorization: `Bearer ${session.provider_token}` }
-      });
-      const data = await response.json();
-      if (response.ok && data.items) {
-        setAvailableCalendars(data.items);
-        // Only set primary as default if we don't have any saved preferences
-        if (selectedCalendarIds.size === 0 && !localStorage.getItem('operator_selected_calendars')) {
-          const primary = data.items.find((c: any) => c.primary);
-          if (primary) setSelectedCalendarIds(new Set([primary.id]));
-        }
-      } else {
-        setCalendarListError(data.error?.message || 'Failed to fetch calendar list.');
-      }
-    } catch (error: any) {
-      setCalendarListError(error.message);
-    }
-  };
-
-  const fetchCalendarEvents = async () => {
-    if (!session.provider_token || selectedCalendarIds.size === 0) return;
-    setIsCalendarLoading(true);
-    setCalendarError(null);
-    
-    const now = new Date();
-    let timeMax = new Date();
-    
-    if (calendarTimeframe === 'today') timeMax.setHours(23, 59, 59, 999);
-    else if (calendarTimeframe === 'week') timeMax.setDate(now.getDate() + 7);
-    else if (calendarTimeframe === 'month') timeMax.setMonth(now.getMonth() + 1);
-    else if (calendarTimeframe === 'year') timeMax.setFullYear(now.getFullYear() + 1);
-
-    try {
-      const fetchPromises = Array.from(selectedCalendarIds).map(async (calendarId) => {
-        const calData = availableCalendars.find(c => c.id === calendarId);
-        const calColor = calData?.backgroundColor || '#4f46e5';
-
-        const response = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?timeMin=${now.toISOString()}&timeMax=${timeMax.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=2500`,
-          { headers: { Authorization: `Bearer ${session.provider_token}` } }
-        );
-        const data = await response.json();
-        if (response.ok && data.items) {
-          // Inject native calendar color into events
-          return data.items.map((event: any) => ({ ...event, calendarColor: calColor }));
-        } else {
-          if (selectedCalendarIds.size === 1) setCalendarError(data.error?.message || 'Failed to fetch calendar data.');
-          return [];
-        }
-      });
-
-      const results = await Promise.all(fetchPromises);
-      const allEvents = results.flat();
-      
-      allEvents.sort((a, b) => {
-        const timeA = new Date(a.start?.dateTime || a.start?.date || 0).getTime();
-        const timeB = new Date(b.start?.dateTime || b.start?.date || 0).getTime();
-        return timeA - timeB;
-      });
-
-      setCalendarEvents(allEvents);
-    } catch (error: any) {
-      setCalendarError(error.message);
-    }
-    setIsCalendarLoading(false);
   };
 
   const toggleZenMode = () => {
     setIsZenMode(!isZenMode);
-    document.body.classList.toggle('zen-mode');
   };
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
-  const toggleTimer = () => setIsRunning(!isRunning);
-  const resetTimer = () => { setIsRunning(false); setTimeLeft(25 * 60); };
 
   const handleConsoleInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && inputValue.trim()) {
@@ -231,6 +80,86 @@ export function Dashboard({ session }: { session: Session }) {
       }, 400);
     }
   };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  const loadDriveSettings = async () => {
+    if (!session.provider_token) return;
+    try {
+      const s = await getDriveSettings(session.user.id);
+      setDriveSettings(s);
+    } catch { /* non-fatal */ }
+  };
+
+  const loadGeminiKey = async () => {
+    const { data } = await supabase
+      .from('user_settings')
+      .select('gemini_api_key')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+    if (data?.gemini_api_key) {
+      try {
+        const parsed = JSON.parse(data.gemini_api_key);
+        if (Array.isArray(parsed)) {
+          setGeminiKeys(parsed);
+        } else {
+          setGeminiKeys([{ email: 'Legacy Key', key: data.gemini_api_key }]);
+        }
+      } catch (e) {
+        setGeminiKeys([{ email: 'Legacy Key', key: data.gemini_api_key }]);
+      }
+    }
+  };
+
+  const saveGeminiKeys = async (keysToSave: {email: string, key: string}[]) => {
+    setIsSavingGeminiKey(true);
+    await supabase.from('user_settings').upsert(
+      { user_id: session.user.id, gemini_api_key: JSON.stringify(keysToSave), updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    );
+    setGeminiKeys(keysToSave);
+    setGeminiKeySaved(true);
+    setTimeout(() => setGeminiKeySaved(false), 2500);
+    setIsSavingGeminiKey(false);
+  };
+
+  const addGeminiKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newKeyEmail.trim() || !newKeyToken.trim()) return;
+    const newKeys = [...geminiKeys, { email: newKeyEmail.trim(), key: newKeyToken.trim() }];
+    setNewKeyEmail('');
+    setNewKeyToken('');
+    await saveGeminiKeys(newKeys);
+  };
+
+  const removeGeminiKey = async (idx: number) => {
+    const newKeys = geminiKeys.filter((_, i) => i !== idx);
+    await saveGeminiKeys(newKeys);
+  };
+
+  const handleDriveToggle = async () => {
+    if (isDriveToggling) return;
+    setIsDriveToggling(true);
+    try {
+      if (driveSettings.drive_sync_enabled) {
+        // Disable — keep folder ID in case they re-enable
+        await saveDriveSettings(session.user.id, { drive_sync_enabled: false });
+        setDriveSettings(prev => ({ ...prev, drive_sync_enabled: false }));
+      }
+      // Enabling is handled by NoteVault approval flow — just close modal so user can save a note
+      else {
+        setIsSettingsOpen(false);
+      }
+    } catch { /* non-fatal */ }
+    setIsDriveToggling(false);
+  };
+
+  useEffect(() => {
+    if (isSettingsOpen) { loadDriveSettings(); loadGeminiKey(); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSettingsOpen]);
 
   const hasGoogleAccess = !!session.provider_token;
 
@@ -260,36 +189,13 @@ export function Dashboard({ session }: { session: Session }) {
         {/* LEFT PANEL: Pomodoro & Vocabulary */}
         <div className={`flex flex-col gap-5 transition-all duration-500 ${isZenMode ? 'opacity-0 h-0 overflow-hidden' : ''}`}>
           
-          {/* POMODORO WIDGET */}
-          <div className={`relative overflow-hidden border rounded-2xl p-6 shadow-lg flex flex-col items-center justify-center transition-all duration-500 ${isRunning ? 'bg-indigo-950 border-indigo-500 shadow-indigo-900/50' : 'bg-white border-gray-200'}`}>
-            
-            {/* Glowing background effect when running */}
-            {isRunning && (
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-500/20 via-transparent to-transparent opacity-70 animate-pulse"></div>
-            )}
-
-            <div className={`text-[10px] font-black tracking-[0.2em] mb-3 z-10 transition-colors ${isRunning ? 'text-indigo-300' : 'text-gray-400'}`}>
-              {isRunning ? 'DEEP WORK' : 'FOCUS FLOW'}
-            </div>
-            
-            <div className={`font-mono font-black text-6xl tracking-tighter mb-6 z-10 transition-colors ${isRunning ? 'text-white drop-shadow-[0_0_15px_rgba(99,102,241,0.8)]' : 'text-gray-800'}`}>
-              {formatTime(timeLeft)}
-            </div>
-            
-            <div className="flex gap-4 z-10">
-              <button onClick={toggleTimer} 
-                      className={`rounded-full w-14 h-14 flex items-center justify-center font-bold transition-all transform hover:scale-105 active:scale-95 shadow-md ${isRunning ? 'bg-indigo-500 text-white hover:bg-indigo-400 shadow-indigo-500/50' : 'bg-gray-900 text-white hover:bg-gray-800'}`}>
-                {isRunning ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
-              </button>
-              <button onClick={resetTimer} 
-                      className={`rounded-full w-14 h-14 flex items-center justify-center font-bold transition-all transform hover:scale-105 active:scale-95 shadow-sm ${isRunning ? 'bg-indigo-900/50 text-indigo-300 hover:bg-indigo-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'}`}>
-                <RotateCcw size={22} />
-              </button>
-            </div>
-            
-            {/* Progress Bar indicator */}
-            <div className="absolute bottom-0 left-0 h-1 bg-indigo-500 transition-all duration-1000 ease-linear" style={{ width: `${((25 * 60 - timeLeft) / (25 * 60)) * 100}%` }}></div>
-          </div>
+          <PomodoroEngine 
+            isZenMode={isZenMode} 
+            tasks={tasks}
+            activeTaskId={activeTaskId}
+            onActiveTaskChange={setActiveTaskId}
+            onSessionComplete={() => handleSessionComplete(activeTaskId)}
+          />
 
           {/* VOCABULARY WIDGET */}
           <div className="bg-[#fcfbf9] border border-gray-300 rounded-xl p-5 shadow-sm flex flex-col flex-grow">
@@ -322,7 +228,7 @@ export function Dashboard({ session }: { session: Session }) {
               onClick={() => setCenterTab('focus')}
               className={`font-bold text-base pb-2 border-b-2 transition-colors ${centerTab === 'focus' ? 'text-indigo-600 border-indigo-600' : 'text-gray-500 border-transparent hover:text-gray-800'}`}
             >
-              Focus Console
+              Operator Focus
             </button>
             <button 
               onClick={() => setCenterTab('calendar')}
@@ -397,7 +303,7 @@ export function Dashboard({ session }: { session: Session }) {
                               />
                               <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cal.backgroundColor || '#4f46e5' }}></div>
                               <span className="text-sm text-gray-700 group-hover:text-indigo-600 transition-colors truncate">
-                                {cal.summary}
+                                {cal.summaryOverride || cal.summary}
                               </span>
                             </label>
                           ))}
@@ -445,47 +351,35 @@ export function Dashboard({ session }: { session: Session }) {
           )}
         </div>
 
-        {/* RIGHT PANEL */}
+        {/* RIGHT PANEL — Tasks only */}
         <div className={`bg-[#fcfbf9] border border-gray-300 rounded-xl p-5 shadow-sm flex flex-col overflow-hidden transition-all duration-500 ${isZenMode ? 'opacity-0 p-0 border-none' : ''}`}>
-          <div className="flex gap-4 mb-4 border-b border-gray-300 pb-2 shrink-0">
-            <button onClick={() => setActiveTab('tasks')} className={`font-bold text-sm pb-1 border-b-2 transition-colors ${activeTab === 'tasks' ? 'text-indigo-600 border-indigo-600' : 'text-gray-500 border-transparent hover:text-gray-800'}`}>Master Tasks</button>
-            <button onClick={() => setActiveTab('vault')} className={`font-bold text-sm pb-1 border-b-2 transition-colors ${activeTab === 'vault' ? 'text-indigo-600 border-indigo-600' : 'text-gray-500 border-transparent hover:text-gray-800'}`}>Note Vault</button>
+          <p className="font-black text-sm text-gray-700 mb-4 border-b border-gray-200 pb-2 shrink-0">Master Tasks</p>
+          <div className="flex flex-col flex-grow h-full overflow-hidden">
+            <div className="flex-grow overflow-y-auto space-y-2 pr-1">
+              {isLoadingTasks ? <p className="text-sm text-gray-400 text-center mt-4 animate-pulse">Loading...</p> :
+               tasks.length === 0 ? <p className="text-sm text-gray-400 text-center mt-4">No tasks found.</p> :
+               tasks.map(task => (
+                <div key={task.id}
+                     className={`group bg-white border rounded-md p-2 flex gap-3 items-center shadow-sm text-sm transition-all hover:border-gray-300 ${activeTaskId === task.id ? 'border-indigo-500 ring-1 ring-indigo-500' : 'border-gray-200'}`}
+                     onClick={() => { if (!task.is_completed) { setActiveTaskId(activeTaskId === task.id ? null : task.id); } }}
+                     style={{ cursor: task.is_completed ? 'default' : 'pointer' }}
+                >
+                  <button onClick={(e) => { e.stopPropagation(); toggleTask(task, activeTaskId, setActiveTaskId); }} className={`w-5 h-5 rounded border flex items-center justify-center transition-colors shrink-0 ${task.is_completed ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 bg-white hover:border-indigo-400'}`}>
+                    {task.is_completed && <Check size={14} />}
+                  </button>
+                  <span className={`flex-1 transition-all ${task.is_completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{task.title}</span>
+                  <span className="text-xs text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full font-bold">
+                    Sessions: {task.sessions_count || 0}
+                  </span>
+                  <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all p-1 shrink-0"><Trash2 size={14} /></button>
+                </div>
+               ))}
+            </div>
+            <form onSubmit={handleFormAddTask} className="flex gap-2 mt-4 pt-3 border-t border-gray-100 shrink-0">
+              <input type="text" value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} placeholder="Add new task..." className="flex-1 p-2 border border-gray-300 rounded-md text-sm outline-none focus:border-indigo-500 min-w-0" />
+              <button type="submit" className="px-4 py-2 bg-gray-800 text-white rounded-md font-bold text-sm hover:bg-gray-900 transition-colors shrink-0">Add</button>
+            </form>
           </div>
-
-          {activeTab === 'tasks' && (
-            <div className="flex flex-col flex-grow h-full overflow-hidden">
-              <div className="flex-grow overflow-y-auto space-y-2 pr-1">
-                {isLoadingTasks ? <p className="text-sm text-gray-400 text-center mt-4 animate-pulse">Loading...</p> : 
-                 tasks.length === 0 ? <p className="text-sm text-gray-400 text-center mt-4">No tasks found.</p> : 
-                 tasks.map(task => (
-                  <div key={task.id} className="group bg-white border border-gray-200 rounded-md p-2 flex gap-3 items-center shadow-sm text-sm transition-all hover:border-gray-300">
-                    <button onClick={() => toggleTask(task)} className={`w-5 h-5 rounded border flex items-center justify-center transition-colors shrink-0 ${task.is_completed ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 bg-white hover:border-indigo-400'}`}>
-                      {task.is_completed && <Check size={14} />}
-                    </button>
-                    <span className={`flex-1 transition-all ${task.is_completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{task.title}</span>
-                    <button onClick={() => deleteTask(task.id)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all p-1 shrink-0"><Trash2 size={14} /></button>
-                  </div>
-                 ))}
-              </div>
-              <form onSubmit={addTask} className="flex gap-2 mt-4 pt-3 border-t border-gray-100 shrink-0">
-                <input type="text" value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} placeholder="Add new task..." className="flex-1 p-2 border border-gray-300 rounded-md text-sm outline-none focus:border-indigo-500 min-w-0" />
-                <button type="submit" className="px-4 py-2 bg-gray-800 text-white rounded-md font-bold text-sm hover:bg-gray-900 transition-colors shrink-0">Add</button>
-              </form>
-            </div>
-          )}
-
-          {activeTab === 'vault' && (
-            <div className="flex flex-col flex-grow">
-              <p className="text-xs text-gray-500 mt-0 mb-4">Drag & drop images of handwritten notes or PDFs to extract text.</p>
-              <div className="border-2 border-dashed border-indigo-300 rounded-lg p-6 text-center text-gray-500 bg-white cursor-pointer hover:bg-indigo-50 transition-colors">
-                <FileText className="mx-auto mb-2 text-indigo-400" size={32} />
-                <div className="font-bold text-gray-700 text-sm">Upload PDF or Image</div>
-              </div>
-              <div className="mt-6 flex-grow flex flex-col items-center justify-center opacity-50">
-                <p className="text-sm font-bold text-gray-400 text-center">Your vault is empty.<br/>Upload a note to begin.</p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -508,6 +402,7 @@ export function Dashboard({ session }: { session: Session }) {
                 </div>
               </div>
               <div className="space-y-3 pt-4 border-t border-gray-200">
+                {/* Google Calendar */}
                 <div className={`flex items-center justify-between p-3 bg-white border ${hasGoogleAccess ? 'border-green-300 bg-green-50' : 'border-gray-200 opacity-60'} rounded-xl transition-colors`}>
                   <div>
                     <p className={`font-bold text-sm ${hasGoogleAccess ? 'text-green-800' : 'text-gray-700'}`}>Google Calendar Sync</p>
@@ -517,12 +412,102 @@ export function Dashboard({ session }: { session: Session }) {
                     <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${hasGoogleAccess ? 'right-0.5' : 'left-0.5'}`}></div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-xl opacity-60 cursor-not-allowed">
+
+                {/* Drive Sync */}
+                <div
+                  onClick={hasGoogleAccess ? handleDriveToggle : undefined}
+                  className={`flex items-center justify-between p-3 bg-white border rounded-xl transition-colors
+                    ${!hasGoogleAccess ? 'opacity-60 cursor-not-allowed border-gray-200' :
+                      driveSettings.drive_sync_enabled ? 'border-green-300 bg-green-50 cursor-pointer hover:bg-green-100' :
+                      'border-gray-200 cursor-pointer hover:bg-gray-50'}`}
+                >
                   <div>
-                    <p className="font-bold text-sm text-gray-700">Drive Note Sync</p>
-                    <p className="text-xs text-gray-500">Backup uploaded notes to Google Drive</p>
+                    <p className={`font-bold text-sm ${driveSettings.drive_sync_enabled ? 'text-green-800' : 'text-gray-700'}`}>Drive Note Sync</p>
+                    <p className={`text-xs ${driveSettings.drive_sync_enabled ? 'text-green-600' : 'text-gray-500'}`}>
+                      {!hasGoogleAccess ? 'Log in via Google to enable.' :
+                        driveSettings.drive_sync_enabled ? 'Active — files sync to "Operator — Notes" folder.' :
+                        'Enable via Note Vault on first upload.'}
+                    </p>
                   </div>
-                  <div className="w-10 h-5 bg-gray-300 rounded-full relative"><div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full"></div></div>
+                  <div className={`w-10 h-5 rounded-full relative transition-colors ${driveSettings.drive_sync_enabled ? 'bg-green-500' : 'bg-gray-300'}`}>
+                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${driveSettings.drive_sync_enabled ? 'right-0.5' : 'left-0.5'}`} />
+                  </div>
+                </div>
+
+                {/* Gemini API Key */}
+                <div className="p-3 bg-white border border-gray-200 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-sm text-gray-700 flex items-center gap-1.5">
+                        <Key size={13} className="text-purple-500" /> Gemini API Keys
+                      </p>
+                      <p className="text-[11px] text-gray-500">Add multiple keys. Operator will auto-rotate to avoid quota limits.</p>
+                    </div>
+                    {geminiKeySaved && (
+                      <span className="text-[10px] font-bold text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">✓ Saved</span>
+                    )}
+                  </div>
+
+                  {geminiKeys.length > 0 && (
+                    <div className="space-y-2">
+                      {geminiKeys.map((k, idx) => (
+                        <div key={idx} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs">
+                          <div className="min-w-0 flex-1 mr-2">
+                            <p className="font-bold text-gray-700 truncate">{k.email}</p>
+                            <p className="font-mono text-gray-400 truncate">
+                              {showGeminiKeyMap[idx] ? k.key : k.key.substring(0, 10) + '...'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setShowGeminiKeyMap(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                              className="text-gray-400 hover:text-gray-700 transition-colors"
+                            >
+                              {showGeminiKeyMap[idx] ? <EyeOff size={14} /> : <Eye size={14} />}
+                            </button>
+                            <button
+                              onClick={() => removeGeminiKey(idx)}
+                              className="text-gray-400 hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <form onSubmit={addGeminiKey} className="space-y-2 pt-2 border-t border-gray-100">
+                    <input
+                      type="text"
+                      value={newKeyEmail}
+                      onChange={e => setNewKeyEmail(e.target.value)}
+                      placeholder="Google Account Email"
+                      className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-purple-400 bg-gray-50"
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newKeyToken}
+                        onChange={e => setNewKeyToken(e.target.value)}
+                        placeholder="API Key (AIza...)"
+                        className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-purple-400 font-mono bg-gray-50"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!newKeyEmail.trim() || !newKeyToken.trim() || isSavingGeminiKey}
+                        className="px-3 py-1.5 text-xs font-bold bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white rounded-lg transition-colors"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </form>
+                  <p className="text-[10px] text-gray-400 leading-tight">
+                    Get free keys at{' '}
+                    <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:underline">aistudio.google.com</a>.
+                    Keys are stored securely in your database.
+                  </p>
                 </div>
               </div>
             </div>

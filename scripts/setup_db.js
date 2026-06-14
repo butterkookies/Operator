@@ -33,8 +33,12 @@ async function setupDatabase() {
         user_id uuid references auth.users not null,
         title text not null,
         is_completed boolean default false,
+        sessions_count integer default 0,
         created_at timestamp with time zone default timezone('utc'::text, now()) not null
       );
+
+      -- Add sessions_count to existing tables
+      alter table tasks add column if not exists sessions_count integer default 0;
 
       -- Turn on Row Level Security
       alter table tasks enable row level security;

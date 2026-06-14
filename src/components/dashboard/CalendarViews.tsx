@@ -1,4 +1,3 @@
-import React from 'react';
 
 type GoogleEvent = {
   id: string;
@@ -125,7 +124,7 @@ export function WeekView({ events }: { events: GoogleEvent[] }) {
       
       {/* Week Header */}
       <div className="flex border-b border-gray-200 bg-gray-50 z-10 shadow-sm pl-14">
-        {days.map((day, i) => (
+        {days.map((day) => (
           <div key={day} className="flex-1 text-center py-2 border-l border-gray-100">
             <div className="text-xs font-bold text-gray-500 uppercase">{day}</div>
           </div>

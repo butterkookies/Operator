@@ -1,33 +1,94 @@
+import { useState } from 'react';
+import { Home, Calendar, CheckSquare, BookOpen, Settings, PanelLeftClose } from 'lucide-react';
 
-import { Home, Calendar, CheckSquare, BrainCircuit, Settings } from 'lucide-react';
+type Page = 'dashboard' | 'vault';
 
-export function Sidebar() {
+type SidebarProps = {
+  currentPage: Page;
+  onNavigate: (page: Page) => void;
+};
+
+export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   return (
-    <div className="hidden md:flex flex-col w-64 h-full bg-[#f3f2ee] border-r border-gray-300 p-4">
-      <div className="flex items-center gap-3 mb-8 px-2">
-        <div className="w-8 h-8 bg-gray-800 rounded flex items-center justify-center text-white font-bold">O</div>
-        <h1 className="text-xl font-bold tracking-widest text-gray-800">OPERATOR</h1>
+    <div className={`flex md:flex-col ${isCollapsed ? 'md:w-20' : 'md:w-64'} w-full bg-[#f3f2ee] md:border-r border-t md:border-t-0 border-gray-300 p-2 md:p-4 shrink-0 transition-all duration-300 z-50`}>
+      {/* Desktop Header */}
+      <div className={`hidden md:flex items-center mb-8 px-2 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
+        <div className="flex items-center gap-3 overflow-hidden">
+          <div 
+            className="w-8 h-8 bg-gray-800 rounded flex items-center justify-center text-white font-bold shrink-0 cursor-pointer"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            title="Toggle Sidebar"
+          >
+            O
+          </div>
+          {!isCollapsed && <h1 className="text-xl font-bold tracking-widest text-gray-800 whitespace-nowrap">OPERATOR</h1>}
+        </div>
+        {!isCollapsed && (
+          <button onClick={() => setIsCollapsed(true)} className="text-gray-400 hover:text-gray-700 ml-2 shrink-0">
+            <PanelLeftClose size={18} />
+          </button>
+        )}
       </div>
-      
-      <nav className="flex-1 space-y-2">
-        <NavItem icon={<Home size={20} />} label="Dashboard" active />
-        <NavItem icon={<BrainCircuit size={20} />} label="Academics" />
-        <NavItem icon={<Calendar size={20} />} label="Schedule" />
-        <NavItem icon={<CheckSquare size={20} />} label="Tasks" />
+
+      <nav className="flex-1 flex flex-row md:flex-col justify-around md:justify-start gap-1">
+        <NavItem
+          icon={<Home size={20} />}
+          label="Dashboard"
+          active={currentPage === 'dashboard'}
+          onClick={() => onNavigate('dashboard')}
+          isCollapsed={isCollapsed}
+        />
+        <NavItem icon={<Calendar size={20} />} label="Schedule" isCollapsed={isCollapsed} />
+        <NavItem icon={<CheckSquare size={20} />} label="Tasks" isCollapsed={isCollapsed} />
+        <NavItem
+          icon={<BookOpen size={20} />}
+          label="Note Vault"
+          active={currentPage === 'vault'}
+          onClick={() => onNavigate('vault')}
+          isCollapsed={isCollapsed}
+        />
       </nav>
 
-      <div className="mt-auto pt-4 border-t border-gray-300">
-        <NavItem icon={<Settings size={20} />} label="Settings" />
+      <div className="hidden md:block mt-auto pt-4 border-t border-gray-300">
+        <NavItem icon={<Settings size={20} />} label="Settings" isCollapsed={isCollapsed} />
+      </div>
+      
+      {/* Mobile Settings Icon */}
+      <div className="md:hidden flex items-center justify-center px-2 border-l border-gray-300 ml-1">
+         <NavItem icon={<Settings size={20} />} label="Settings" isCollapsed={true} />
       </div>
     </div>
   );
 }
 
-function NavItem({ icon, label, active = false }: { icon: React.ReactNode, label: string, active?: boolean }) {
+function NavItem({
+  icon,
+  label,
+  active = false,
+  onClick,
+  isCollapsed
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
+  onClick?: () => void;
+  isCollapsed: boolean;
+}) {
   return (
-    <button className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${active ? 'bg-gray-200 text-gray-900 font-medium' : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'}`}>
-      {icon}
-      <span>{label}</span>
+    <button
+      onClick={onClick}
+      title={isCollapsed ? label : undefined}
+      className={`group relative flex items-center md:w-full px-3 py-3 md:py-2 rounded-lg transition-all text-sm
+        ${isCollapsed ? 'justify-center' : 'justify-center md:justify-start'}
+        ${active
+          ? 'bg-indigo-100 text-indigo-700 font-bold shadow-sm'
+          : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900 font-medium'}`}
+    >
+      <div className="shrink-0">{icon}</div>
+      <span className={`whitespace-nowrap ${isCollapsed ? 'hidden' : 'hidden md:block ml-3'}`}>{label}</span>
+      {active && !isCollapsed && <div className="hidden md:block ml-auto w-1.5 h-1.5 rounded-full bg-indigo-500" />}
     </button>
   );
 }
