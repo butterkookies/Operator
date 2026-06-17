@@ -11,7 +11,7 @@ export function UnifiedConsole() {
           <Terminal size={14} className="text-green-400" />
           operator_ai_core
         </span>
-        <span className="text-gray-500">v2.0.0</span>
+        <span className="text-neutral-500">v2.0.0</span>
       </div>
       
       <div className="flex-1 p-4 overflow-y-auto space-y-4">
@@ -20,7 +20,7 @@ export function UnifiedConsole() {
       </div>
 
       <div className="p-3 bg-[#16161e] border-t border-gray-700 flex items-center gap-2">
-        <button className="p-2 rounded-full hover:bg-gray-700 text-gray-400 transition-colors">
+        <button className="p-2 rounded-full hover:bg-gray-700 text-neutral-500 transition-colors">
           <Mic size={18} />
         </button>
         <input 

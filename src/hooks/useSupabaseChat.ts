@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Session } from '@supabase/supabase-js';
 
@@ -17,7 +17,28 @@ export type ChatSession = {
 export function useSupabaseChat(session: Session) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [activeSessionIdState, setActiveSessionIdState] = useState<string | null>(() => {
+    try {
+      const saved = localStorage.getItem('operator_chat_state');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.mode === 'session' ? parsed.id : null;
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
+    return null;
+  });
+  const [isSessionsLoaded, setIsSessionsLoaded] = useState(false);
+  const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
+  const justCreatedSessionId = useRef<string | null>(null);
+
+  const activeSessionId = activeSessionIdState;
+  const setActiveSessionId = (id: string | null) => {
+    setActiveSessionIdState(id);
+    const stateToSave = id ? { mode: 'session', id } : { mode: 'new' };
+    localStorage.setItem('operator_chat_state', JSON.stringify(stateToSave));
+  };
   
   // Use AbortController instead of isMounted
   useEffect(() => {
@@ -35,10 +56,31 @@ export function useSupabaseChat(session: Session) {
 
         if (!error && data && data.length > 0) {
           setSessions(data);
-          setActiveSessionId(data[0].id);
+          const savedStr = localStorage.getItem('operator_chat_state');
+          if (savedStr) {
+            try {
+              const saved = JSON.parse(savedStr);
+              if (saved.mode === 'new') {
+                setActiveSessionIdState(null);
+              } else if (saved.mode === 'session' && data.some(s => s.id === saved.id)) {
+                setActiveSessionIdState(saved.id);
+              } else {
+                setActiveSessionId(data[0].id);
+              }
+            } catch (e) {
+              setActiveSessionId(data[0].id);
+            }
+          } else {
+            // Fresh login fallback
+            setActiveSessionId(data[0].id);
+          }
         }
       } catch (e) {
         console.error("Failed to fetch sessions", e);
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsSessionsLoaded(true);
+        }
       }
     };
 
@@ -52,10 +94,23 @@ export function useSupabaseChat(session: Session) {
   useEffect(() => {
     const abortController = new AbortController();
 
+    if (!isSessionsLoaded) return;
+
     if (!activeSessionId) {
-      setMessages([{ id: '1', role: 'assistant', content: "Hello. I am Operator. What's on your mind today? I can log tasks, add to your calendar, or just listen to your thoughts." }]);
+      setMessages([]);
+      setIsHistoryLoaded(true);
       return;
     }
+    
+    if (justCreatedSessionId.current === activeSessionId) {
+      justCreatedSessionId.current = null;
+      setIsHistoryLoaded(true);
+      return;
+    }
+    
+    // Clear messages while fetching to prevent flickering of old chat/default messages
+    setMessages([]);
+    setIsHistoryLoaded(false);
 
     const fetchChatHistory = async () => {
       try {
@@ -77,11 +132,15 @@ export function useSupabaseChat(session: Session) {
           }));
           setMessages(loadedMsgs);
         } else {
-          setMessages([{ id: '1', role: 'assistant', content: "Hello. I am Operator. What's on your mind today? I can log tasks, add to your calendar, or just listen to your thoughts." }]);
+          setMessages([]);
         }
       } catch (e) {
         if (!abortController.signal.aborted) {
           console.error("Failed to load chat history:", e);
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsHistoryLoaded(true);
         }
       }
     };
@@ -91,7 +150,7 @@ export function useSupabaseChat(session: Session) {
     return () => {
       abortController.abort();
     };
-  }, [activeSessionId]);
+  }, [activeSessionId, isSessionsLoaded]);
 
   const createSession = async (title: string): Promise<string | null> => {
     const { data: newSession } = await supabase
@@ -101,6 +160,7 @@ export function useSupabaseChat(session: Session) {
       .single();
     
     if (newSession) {
+      justCreatedSessionId.current = newSession.id;
       setActiveSessionId(newSession.id);
       setSessions(prev => [newSession, ...prev]);
       return newSession.id;
@@ -114,7 +174,7 @@ export function useSupabaseChat(session: Session) {
       const remaining = sessions.filter(s => s.id !== id);
       setActiveSessionId(remaining.length > 0 ? remaining[0].id : null);
       if (remaining.length === 0) {
-        setMessages([{ id: '1', role: 'assistant', content: "Hello. I am Operator. What's on your mind today?" }]);
+        setMessages([]);
       }
     }
     await supabase.from('chat_sessions').delete().eq('id', id);
@@ -123,6 +183,7 @@ export function useSupabaseChat(session: Session) {
   const saveMessage = async (sessionId: string, message: Message) => {
     await supabase.from('chat_history').insert([{
       session_id: sessionId,
+      user_id: session.user.id,
       role: message.role,
       message: message.content
     }]);
@@ -136,6 +197,8 @@ export function useSupabaseChat(session: Session) {
     setActiveSessionId,
     createSession,
     deleteSession,
-    saveMessage
+    saveMessage,
+    isSessionsLoaded,
+    isHistoryLoaded
   };
 }

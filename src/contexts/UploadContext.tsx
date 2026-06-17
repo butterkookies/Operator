@@ -142,33 +142,33 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
       {children}
       {/* RENDER FLOATING UI HERE */}
       {jobs.length > 0 && (
-        <div className="fixed bottom-6 right-6 z-[9999] w-80 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-96 animate-in slide-in-from-bottom-5">
+        <div className="fixed bottom-6 right-6 z-[9999] w-80 bg-neutral-900 rounded-xl shadow-2xl border border-neutral-700 overflow-hidden flex flex-col max-h-96 animate-in slide-in-from-bottom-5">
           <div className="bg-gray-900 text-white px-4 py-3 flex justify-between items-center shrink-0">
             <h3 className="text-xs font-black">Upload Manager</h3>
             <span className="text-[10px] bg-gray-800 px-2 py-1 rounded-full font-bold">{jobs.filter(j => j.status === 'uploading').length} Active</span>
           </div>
           <div className="overflow-y-auto p-2 space-y-2">
             {jobs.map(job => (
-              <div key={job.id} className="p-3 bg-gray-50 border border-gray-100 rounded-lg relative">
+              <div key={job.id} className="p-3 bg-neutral-800 border border-neutral-800 rounded-lg relative">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2 overflow-hidden pr-4">
                     <File size={14} className="text-indigo-500 shrink-0" />
-                    <p className="text-xs font-bold text-gray-800 truncate">{job.file.name}</p>
+                    <p className="text-xs font-bold text-neutral-200 truncate">{job.file.name}</p>
                   </div>
                   {job.status === 'error' && (
-                     <button onClick={() => dismissJob(job.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors"><X size={14}/></button>
+                     <button onClick={() => dismissJob(job.id)} className="absolute top-2 right-2 text-neutral-500 hover:text-red-500 transition-colors"><X size={14}/></button>
                   )}
                   {job.status === 'success' && (
-                     <button onClick={() => dismissJob(job.id)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 transition-colors"><X size={14}/></button>
+                     <button onClick={() => dismissJob(job.id)} className="absolute top-2 right-2 text-neutral-500 hover:text-neutral-300 transition-colors"><X size={14}/></button>
                   )}
                 </div>
                 
                 {job.status === 'uploading' && (
                   <div className="space-y-1.5">
-                    <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-1.5 w-full bg-neutral-800 rounded-full overflow-hidden">
                       <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${job.progress}%` }} />
                     </div>
-                    <p className="text-[10px] text-gray-500 text-right">{job.progress}%</p>
+                    <p className="text-[10px] text-neutral-500 text-right">{job.progress}%</p>
                   </div>
                 )}
                 {job.status === 'success' && (

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Operator Frontend Architecture</title>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  </script>
+  <style>
+    body {
+      background-color: #0a0a0a;
+      color: #e5e5e5;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      padding: 2rem;
+      margin: 0;
+    }
+    h1 {
+      text-align: center;
+      color: #a855f7; /* Purple */
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 2rem;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #171717;
+      padding: 2rem;
+      border-radius: 1rem;
+      border: 1px solid #262626;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .notes {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: #1e1b4b;
+      border: 1px solid #3730a3;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <h1>Operator Frontend Architecture Layers</h1>
+  
+  <div class="container">
+    <div class="mermaid">
+      graph TD
+      %% Define Styles
+      classDef core fill:#4c1d95,stroke:#a855f7,stroke-width:2px,color:#fff;
+      classDef state fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#fff;
+      classDef ui fill:#1e3a8a,stroke:#60a5fa,stroke-width:2px,color:#fff;
+      classDef external fill:#78350f,stroke:#fbbf24,stroke-width:2px,color:#fff;
+
+      subgraph Core_Layer ["App.tsx (Routing & Auth)"]
+          App[App Component]:::core --> ChatProvider:::state
+          App --> ResponsiveNav:::ui
+          App --> SettingsModal:::ui
+          App --> PageRouter{Router}:::core
+      end
+
+      subgraph State_Layer ["Context & Custom Hooks (State)"]
+          ChatProvider -->|provides| useChat:::state
+          useChat -->|wraps| useSupabaseChat:::state
+          useSupabaseChat -->|fetches| DB[(Supabase DB)]:::external
+          
+          useGeminiAI:::state
+          useGoogleCalendar:::state
+          useSupabaseTasks:::state
+      end
+
+      subgraph UI_Layer ["Page Components (UI)"]
+          PageRouter -->|/chat| OperatorChat:::ui
+          PageRouter -->|/zen| ZenDashboard:::ui
+          PageRouter -->|/inbox| ThoughtInbox:::ui
+          
+          OperatorChat -->|consumes| useChat
+          OperatorChat -->|consumes| useGoogleCalendar
+          OperatorChat -->|consumes| useGeminiAI
+          
+          ZenDashboard -->|consumes| useSupabaseTasks
+          ZenDashboard -->|consumes| useGoogleCalendar
+      end
+
+      subgraph API_Layer ["External Services (API)"]
+          useGeminiAI -->|calls| Gemini[Google Gemini API]:::external
+          useGeminiAI -->|uses| libGoogle[lib/googleCalendarApi.ts]:::state
+          libGoogle --> GoogleCal[Google Calendar API]:::external
+          useGoogleCalendar --> GoogleCal
+      end
+    </div>
+
+    <div class="notes">
+      <strong>Architecture Check Results:</strong><br/>
+      After the recent cleanup, the codebase shows <strong>no severe spaghetti code</strong>. 
+      <br/><br/>
+      <strong>Minor Entanglement Found:</strong><br/>
+      - <code>OperatorChat.tsx</code> mounts <code>useGoogleCalendar</code> just to pass <code>availableCalendars</code> to <code>useGeminiAI</code>. This is a standard React pattern (Lifting State Up), but it causes calendar network requests on chat load.
+      <br/><br/>
+      <strong>Overall Health:</strong><br/>
+      - Clean vertical separation between Routing (App), State (Context/Hooks), UI (Components), and API (lib/external).
+      - No prop drilling thanks to <code>ChatProvider</code>.
+    </div>
+  </div>
+</body>
+</html>

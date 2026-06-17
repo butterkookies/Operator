@@ -12,7 +12,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className={`flex md:flex-col ${isCollapsed ? 'md:w-20' : 'md:w-64'} w-full bg-[#f3f2ee] md:border-r border-t md:border-t-0 border-gray-300 p-2 md:p-4 shrink-0 transition-all duration-300 z-50`}>
+    <div className={`flex md:flex-col ${isCollapsed ? 'md:w-20' : 'md:w-64'} w-full bg-neutral-950 md:border-r border-t md:border-t-0 border-neutral-600 p-2 md:p-4 shrink-0 transition-all duration-300 z-50`}>
       {/* Desktop Header */}
       <div className={`hidden md:flex items-center mb-8 px-2 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
         <div className="flex items-center gap-3 overflow-hidden">
@@ -23,10 +23,10 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
           >
             O
           </div>
-          {!isCollapsed && <h1 className="text-xl font-bold tracking-widest text-gray-800 whitespace-nowrap">OPERATOR</h1>}
+          {!isCollapsed && <h1 className="text-xl font-bold tracking-widest text-neutral-200 whitespace-nowrap">OPERATOR</h1>}
         </div>
         {!isCollapsed && (
-          <button onClick={() => setIsCollapsed(true)} className="text-gray-400 hover:text-gray-700 ml-2 shrink-0">
+          <button onClick={() => setIsCollapsed(true)} className="text-neutral-500 hover:text-neutral-300 ml-2 shrink-0">
             <PanelLeftClose size={18} />
           </button>
         )}
@@ -51,12 +51,12 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         />
       </nav>
 
-      <div className="hidden md:block mt-auto pt-4 border-t border-gray-300">
+      <div className="hidden md:block mt-auto pt-4 border-t border-neutral-600">
         <NavItem icon={<Settings size={20} />} label="Settings" isCollapsed={isCollapsed} />
       </div>
       
       {/* Mobile Settings Icon */}
-      <div className="md:hidden flex items-center justify-center px-2 border-l border-gray-300 ml-1">
+      <div className="md:hidden flex items-center justify-center px-2 border-l border-neutral-600 ml-1">
          <NavItem icon={<Settings size={20} />} label="Settings" isCollapsed={true} />
       </div>
     </div>
@@ -83,8 +83,8 @@ function NavItem({
       className={`group relative flex items-center md:w-full px-3 py-3 md:py-2 rounded-lg transition-all text-sm
         ${isCollapsed ? 'justify-center' : 'justify-center md:justify-start'}
         ${active
-          ? 'bg-indigo-100 text-indigo-700 font-bold shadow-sm'
-          : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900 font-medium'}`}
+          ? 'bg-indigo-100 text-indigo-400 font-bold shadow-sm'
+          : 'text-neutral-400 hover:bg-neutral-800 hover:text-white font-medium'}`}
     >
       <div className="shrink-0">{icon}</div>
       <span className={`whitespace-nowrap ${isCollapsed ? 'hidden' : 'hidden md:block ml-3'}`}>{label}</span>

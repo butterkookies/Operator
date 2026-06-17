@@ -180,7 +180,7 @@ export function PomodoroEngine({
   return (
     <div
       className={`relative overflow-hidden border rounded-2xl p-6 shadow-lg flex flex-col items-center justify-center transition-all duration-500
-        ${isDeepWork ? 'bg-indigo-950 border-indigo-500 shadow-indigo-900/50' : 'bg-white border-gray-200'}
+        ${isDeepWork ? 'bg-indigo-950 border-indigo-500 shadow-indigo-900/50' : 'bg-neutral-900 border-neutral-700'}
         ${isZenMode ? 'scale-105' : ''}`}
     >
       {/* Glow */}
@@ -199,7 +199,7 @@ export function PomodoroEngine({
                 ? 'bg-indigo-500 text-white'
                 : isDeepWork
                   ? 'bg-indigo-900/50 text-indigo-300 hover:bg-indigo-800'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                  : 'bg-neutral-800 text-neutral-500 hover:bg-neutral-800'}`}
           >
             {MODE_LABELS[m]}
           </button>
@@ -214,33 +214,33 @@ export function PomodoroEngine({
             className={`w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors
               ${isDeepWork
                 ? 'bg-indigo-900/60 text-indigo-200 hover:bg-indigo-800 border border-indigo-700'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'}`}
+                : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-800 border border-neutral-700'}`}
           >
             <span className="truncate">{activeTask ? `📌 ${activeTask.title}` : 'Select task...'}</span>
             <ChevronDown size={12} className={`shrink-0 transition-transform ${isTaskDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {isTaskDropdownOpen && (
-            <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto">
+            <div className="absolute top-full mt-1 left-0 right-0 bg-neutral-900 border border-neutral-700 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto">
               <button
                 onClick={() => { onActiveTaskChange(null); setIsTaskDropdownOpen(false); }}
-                className="w-full text-left px-3 py-2 text-xs text-gray-400 hover:bg-gray-50 transition-colors border-b border-gray-100"
+                className="w-full text-left px-3 py-2 text-xs text-neutral-500 hover:bg-neutral-800 transition-colors border-b border-neutral-800"
               >
                 None
               </button>
               {incompleteTasks.length === 0 && (
-                <p className="text-xs text-gray-400 text-center py-3">No tasks yet.</p>
+                <p className="text-xs text-neutral-500 text-center py-3">No tasks yet.</p>
               )}
               {incompleteTasks.map(task => (
                 <button
                   key={task.id}
                   onClick={() => { onActiveTaskChange(task.id); setIsTaskDropdownOpen(false); }}
                   className={`w-full text-left px-3 py-2 text-xs transition-colors flex items-center justify-between gap-2
-                    ${activeTaskId === task.id ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-gray-700 hover:bg-gray-50'}`}
+                    ${activeTaskId === task.id ? 'bg-indigo-900/20 text-indigo-400 font-bold' : 'text-neutral-300 hover:bg-neutral-800'}`}
                 >
                   <span className="truncate">{task.title}</span>
                   {task.sessions_count > 0 && (
-                    <span className="text-[10px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full font-bold shrink-0">
+                    <span className="text-[10px] bg-indigo-100 text-indigo-400 px-1.5 py-0.5 rounded-full font-bold shrink-0">
                       {task.sessions_count}
                     </span>
                   )}
@@ -253,13 +253,13 @@ export function PomodoroEngine({
 
       {/* Status Label */}
       <div className={`text-[10px] font-black tracking-[0.2em] mb-3 z-10 transition-colors uppercase truncate max-w-full px-2 text-center
-        ${isDeepWork ? 'text-indigo-300' : 'text-gray-400'}`}>
+        ${isDeepWork ? 'text-indigo-300' : 'text-neutral-500'}`}>
         {displayTitle()}
       </div>
 
       {/* Timer */}
       <div className={`font-mono font-black text-6xl tracking-tighter mb-2 z-10 transition-colors
-        ${isDeepWork ? 'text-white drop-shadow-[0_0_15px_rgba(99,102,241,0.8)]' : 'text-gray-800'}`}>
+        ${isDeepWork ? 'text-white drop-shadow-[0_0_15px_rgba(99,102,241,0.8)]' : 'text-neutral-200'}`}>
         {formatTime(timeLeft)}
       </div>
 
@@ -271,7 +271,7 @@ export function PomodoroEngine({
             className={`w-2 h-2 rounded-full transition-colors
               ${i < (focusCount % 4)
                 ? 'bg-indigo-500'
-                : isDeepWork ? 'bg-indigo-800' : 'bg-gray-200'}`}
+                : isDeepWork ? 'bg-indigo-800' : 'bg-neutral-800'}`}
           />
         ))}
       </div>
@@ -292,7 +292,7 @@ export function PomodoroEngine({
           className={`rounded-full w-14 h-14 flex items-center justify-center font-bold transition-all transform hover:scale-105 active:scale-95 shadow-sm
             ${isDeepWork
               ? 'bg-indigo-900/50 text-indigo-300 hover:bg-indigo-800'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'}`}
+              : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-800 hover:text-white'}`}
         >
           <RotateCcw size={22} />
         </button>

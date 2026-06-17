@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { fetchCalendarEvents, createCalendarEvent, deleteCalendarEvent, fetchAvailableCalendars } from '../lib/googleCalendarApi';
 import type { Session } from '@supabase/supabase-js';
 import type { Message } from './useSupabaseChat';
 
@@ -13,8 +14,6 @@ interface GeminiAIOptions {
   activeSessionId: string | null;
   createSession: (title: string) => Promise<string | null>;
   saveMessage: (sessionId: string, message: Message) => Promise<void>;
-  availableCalendars: any[];
-  todayEvents: any[];
 }
 
 export function useGeminiAI({
@@ -23,15 +22,22 @@ export function useGeminiAI({
   setMessages,
   activeSessionId,
   createSession,
-  saveMessage,
-  availableCalendars,
-  todayEvents
+  saveMessage
 }: GeminiAIOptions) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState<string>('');
   const [activeKeyEmail, setActiveKeyEmail] = useState<string>('');
   const [pendingForm, setPendingForm] = useState<{question: string, options: string[], isMultiSelect: boolean, inputType?: string} | null>(null);
   const formResolverRef = useRef<((res: any) => void) | null>(null);
+  const [systemError, setSystemError] = useState<string | null>(null);
+  const systemErrorResolverRef = useRef<((res?: any) => void) | null>(null);
+
+  const retryFailedRequest = () => {
+    if (systemErrorResolverRef.current) {
+      systemErrorResolverRef.current();
+      systemErrorResolverRef.current = null;
+    }
+  };
 
   const handleSubmit = async (userMessage: string) => {
     if (!userMessage.trim() || isProcessing) return;
@@ -61,17 +67,17 @@ export function useGeminiAI({
         .eq('user_id', session.user.id)
         .maybeSingle();
 
-      let apiKeys: {email: string, key: string}[] = [];
+      let apiKeys: {email: string, key: string, tier?: 'free' | 'paid'}[] = [];
       if (settings?.gemini_api_key) {
         try {
           const parsed = JSON.parse(settings.gemini_api_key);
           if (Array.isArray(parsed)) {
             apiKeys = parsed;
           } else {
-            apiKeys = [{ email: 'Legacy Key', key: settings.gemini_api_key.trim() }];
+            apiKeys = [{ email: 'Legacy Key', key: settings.gemini_api_key.trim(), tier: 'free' }];
           }
         } catch {
-          apiKeys = [{ email: 'Legacy Key', key: settings.gemini_api_key.trim() }];
+          apiKeys = [{ email: 'Legacy Key', key: settings.gemini_api_key.trim(), tier: 'free' }];
         }
       }
 
@@ -83,23 +89,32 @@ export function useGeminiAI({
         return;
       }
 
+      const ianaTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const offset = -(new Date().getTimezoneOffset() / 60);
+      const offsetString = `${offset >= 0 ? '+' : '-'}${String(Math.floor(Math.abs(offset))).padStart(2, '0')}:${String((Math.abs(offset) % 1) * 60).padStart(2, '0')}`;
+      const currentUtc = new Date().toISOString();
+
       const prompt = `You are Operator, a helpful AI assistant.
-Current Date & Time: ${new Date().toLocaleString()}
-Available Calendars: ${JSON.stringify(availableCalendars)}
-Today's Primary Events: ${JSON.stringify(todayEvents)}
+Temporal Context:
+- Current UTC Time: ${currentUtc}
+- User IANA Timezone: ${ianaTz}
+- User UTC Offset: UTC${offsetString}
+
+User Preferences for Optimistic Execution:
+- Default Calendar: "primary"
+- Default Work Start Time: "09:00:00"
+- Default Meeting Duration: 60 minutes
 
 Analyze the user's message.
-- If the user asks about their schedule TODAY, you already have the events! Do NOT call 'get_calendar_events'.
-- If they ask about FUTURE days, use 'get_calendar_events'.
-- CRITICAL FOR SCHEDULING: When the user wants to book a meeting, you MUST verify that you have ALL of the following: 
-  1) A specific Date 
-  2) A specific Start Time 
-  3) A specific Duration or End Time 
-  4) The target Calendar ID (Find this by matching the user's requested calendar name against the 'summary' in Available Calendars. Use case-insensitive partial matching).
-- If ANY of these 4 things are missing or ambiguous, you MUST use 'ask_user_question' to ask the user for ONLY the specific missing information, ONE piece at a time. For example, if you need the calendar, ask "Which calendar?" and provide the 'summary' values from Available Calendars as options. If you need the start and end time, ask "What time?" and SET inputType to 'timeRange' to show a time picker. You MUST provide 'options' as an array of logical choices for the user to select from whenever possible (except when using timeRange). Do NOT guess the duration. Do NOT guess the calendar.
-- If the user asks to remove, cancel, or delete an event TODAY, find its ID in Today's Primary Events and call 'delete_calendar_event' directly.
-- If they want to delete a future event, first use 'get_calendar_events' to find the event ID, then use 'delete_calendar_event'.
-- If a tool returns an error, you MUST explain the error to the user in the 'replyMessage'.
+- If the user asks about their schedule, use 'get_calendar_events'. Do NOT guess their schedule.
+- When the user wants to book a meeting, practice Optimistic Execution. Aggressively infer missing slots using the User Preferences above.
+  - If they don't specify a time (e.g., "remind me tomorrow"), default to the Default Work Start Time on the requested day.
+  - If they don't specify a duration, default to the Default Meeting Duration.
+  - If they don't specify a calendar, use the Default Calendar.
+- Only use 'ask_user_question' if the request is utterly confusing or involves a highly destructive action (like deleting overlapping events). Do NOT interrogate the user for basic details.
+- CRITICAL FOR TIMEZONES: When calling 'get_calendar_events' or 'schedule_calendar_event', you MUST format times as strict ISO-8601 strings and append the exact UTC Offset provided above (e.g., "2026-06-18T09:00:00${offsetString}").
+- To delete an event, use 'get_calendar_events' to find its ID, then use 'delete_calendar_event'.
+- If a tool returns an error, explain it to the user.
 
 For ALL OTHER responses, or AFTER you have used a tool, you MUST respond ONLY with a raw JSON object containing exactly these keys:
 {
@@ -123,6 +138,15 @@ For ALL OTHER responses, or AFTER you have used a tool, you MUST respond ONLY wi
       contents.push({ role: 'user', parts: [{ text: `User Message: "${userMessage}"` }] });
       const tools = [{
         functionDeclarations: [
+          {
+            name: "get_available_calendars",
+            description: "Fetch the user's available Google Calendars to find the correct Calendar ID.",
+            parameters: {
+              type: "OBJECT",
+              properties: {},
+              required: []
+            }
+          },
           {
             name: "get_calendar_events",
             description: "Fetch the user's Google Calendar events for a timeframe. Returns an array of events.",
@@ -203,10 +227,55 @@ For ALL OTHER responses, or AFTER you have used a tool, you MUST respond ONLY wi
           }
           throw new Error(`Gemini API Error (${res.status}): ${await res.text()}`);
         }
-        return await res.json();
+        const json = await res.json();
+        
+        // Skip tracking if the current key is paid
+        if (currentKeyObj.tier !== 'paid') {
+          try {
+            const logs = (window as any).__geminiLogs || [];
+            const now = Date.now();
+            const oneDayAgo = now - 24 * 60 * 60 * 1000;
+            const updatedLogs = logs.filter((t: number) => t > oneDayAgo);
+            updatedLogs.push(now);
+            (window as any).__geminiLogs = updatedLogs;
+            
+            // Dispatch custom event to notify Settings UI immediately
+            window.dispatchEvent(new Event('gemini_usage_updated'));
+          } catch (e) {}
+        }
+        
+        return json;
       };
 
-      let data = await callGemini();
+      const safeCallGemini = async () => {
+        while (true) {
+          try {
+            return await callGemini();
+          } catch (err: any) {
+            console.error("API Call Error:", err);
+            let friendlyError = err.message || 'Unknown error';
+            if (friendlyError.includes('Gemini API Error (429)') || friendlyError.includes('All configured API keys have exceeded')) {
+              friendlyError = "The AI is currently at capacity. Please try again in a moment.";
+            } else if (friendlyError.includes('Gemini API Error (503)')) {
+              friendlyError = "The AI servers are experiencing a temporary spike in traffic. Please try again.";
+            } else if (friendlyError.includes('Gemini API Error')) {
+              friendlyError = "The AI encountered an unexpected connection error. Please try again.";
+            }
+            
+            setSystemError(friendlyError);
+            setLoadingStatus('Paused');
+            
+            await new Promise(resolve => {
+              systemErrorResolverRef.current = resolve;
+            });
+            
+            setSystemError(null);
+            setLoadingStatus('Reconnecting...');
+          }
+        }
+      };
+
+      let data = await safeCallGemini();
       let parts = data.candidates[0].content.parts;
       let functionCallPart = parts.find((p: any) => p.functionCall);
 
@@ -216,7 +285,14 @@ For ALL OTHER responses, or AFTER you have used a tool, you MUST respond ONLY wi
         const { name, args } = functionCallPart.functionCall;
         let apiResult: any = null;
 
-        if (name === 'get_calendar_events') {
+        if (name === 'get_available_calendars') {
+          setLoadingStatus('Checking calendars...');
+          try {
+            apiResult = await fetchAvailableCalendars(session.provider_token!);
+          } catch (e: any) {
+            apiResult = { error: e.message };
+          }
+        } else if (name === 'get_calendar_events') {
           setLoadingStatus('Checking your calendar...');
           try {
             let selectedCals = ['primary'];
@@ -225,21 +301,7 @@ For ALL OTHER responses, or AFTER you have used a tool, you MUST respond ONLY wi
               const parsed = JSON.parse(saved);
               if (parsed.length > 0) selectedCals = parsed;
             }
-            const fetchPromises = selectedCals.map(async (calId) => {
-              const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events?timeMin=${encodeURIComponent(args.timeMin)}&timeMax=${encodeURIComponent(args.timeMax)}&singleEvents=true&orderBy=startTime`, { headers: { Authorization: `Bearer ${session.provider_token}` } });
-              if (!res.ok) {
-                if (res.status === 401) {
-                  window.dispatchEvent(new Event('google-token-expired'));
-                  throw new Error("Calendar access token expired. Please tell the user to click the 'Reconnect' banner at the top of the screen.");
-                }
-                const errText = await res.text();
-                throw new Error(`Google API Error (${res.status}): ${errText}`);
-              }
-              const d = await res.json();
-              return d.items ? d.items.map((e: any) => ({ id: e.id, calendarId: calId, summary: e.summary, start: e.start?.dateTime || e.start?.date, end: e.end?.dateTime || e.end?.date })) : [];
-            });
-            const results = await Promise.all(fetchPromises);
-            apiResult = results.flat();
+            apiResult = await fetchCalendarEvents(selectedCals, args.timeMin, args.timeMax, session.provider_token!);
           } catch (e: any) {
             apiResult = { error: e.message };
           }
@@ -249,22 +311,7 @@ For ALL OTHER responses, or AFTER you have used a tool, you MUST respond ONLY wi
             const startIso = new Date(args.start).toISOString();
             const endIso = new Date(args.end).toISOString();
             const targetCalendar = args.calendarId || 'primary';
-            const payload = { summary: args.summary, start: { dateTime: startIso }, end: { dateTime: endIso } };
-            
-            const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendar)}/events`, {
-              method: 'POST',
-              headers: { Authorization: `Bearer ${session.provider_token}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload)
-            });
-            if (!res.ok) {
-              if (res.status === 401) {
-                window.dispatchEvent(new Event('google-token-expired'));
-                throw new Error("Calendar access token expired. Please tell the user to click the 'Reconnect' banner at the top of the screen.");
-              }
-              const errText = await res.text();
-              throw new Error(`Google API Error (${res.status}): ${errText}`);
-            }
-            const d = await res.json();
+            const d = await createCalendarEvent(targetCalendar, args.summary, startIso, endIso, session.provider_token!);
             apiResult = { success: true, link: d.htmlLink };
           } catch (e: any) {
             console.error("Failed to parse or schedule event:", e);
@@ -273,18 +320,7 @@ For ALL OTHER responses, or AFTER you have used a tool, you MUST respond ONLY wi
         } else if (name === 'delete_calendar_event') {
           setLoadingStatus('Removing event...');
           try {
-            const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(args.calendarId)}/events/${encodeURIComponent(args.eventId)}`, {
-              method: 'DELETE',
-              headers: { Authorization: `Bearer ${session.provider_token}` }
-            });
-            if (!res.ok) {
-              if (res.status === 401) {
-                window.dispatchEvent(new Event('google-token-expired'));
-                throw new Error("Calendar access token expired. Please tell the user to click the 'Reconnect' banner at the top of the screen.");
-              }
-              const errText = await res.text();
-              throw new Error(`Google API Error (${res.status}): ${errText}`);
-            }
+            await deleteCalendarEvent(args.calendarId, args.eventId, session.provider_token!);
             apiResult = { success: true };
           } catch (e: any) {
             console.error("Failed to delete event:", e);
@@ -304,7 +340,7 @@ For ALL OTHER responses, or AFTER you have used a tool, you MUST respond ONLY wi
         contents.push({ role: 'model', parts: parts });
         contents.push({ role: 'function', parts: [{ functionResponse: { name, response: { result: apiResult } } }] });
         
-        data = await callGemini();
+        data = await safeCallGemini();
         parts = data.candidates[0].content.parts;
         functionCallPart = parts.find((p: any) => p.functionCall);
       }
@@ -335,11 +371,11 @@ For ALL OTHER responses, or AFTER you have used a tool, you MUST respond ONLY wi
       if (currentSessionId) await saveMessage(currentSessionId, replyMsg);
 
     } catch (error: any) {
-      console.error(error);
+      console.error("Catastrophic sequence error:", error);
       
       let friendlyError = error.message || 'Unknown error';
-      if (friendlyError.includes('Gemini API Error (429)')) {
-        friendlyError = "You have hit the free-tier rate limit for the Gemini API (max 15 requests per minute). Please wait about 60 seconds and try again.";
+      if (friendlyError.includes('Gemini API Error (429)') || friendlyError.includes('All configured API keys have exceeded')) {
+        friendlyError = "The AI is currently at capacity. Please try again in a moment.";
       }
       
       const errorMsg: Message = { 
@@ -348,9 +384,12 @@ For ALL OTHER responses, or AFTER you have used a tool, you MUST respond ONLY wi
         content: `Sorry, I had trouble processing that request: ${friendlyError}` 
       };
       setMessages(prev => [...prev, errorMsg]);
+      if (currentSessionId) await saveMessage(currentSessionId, errorMsg);
+    } finally {
+      setIsProcessing(false);
+      setLoadingStatus('');
+      setSystemError(null);
     }
-
-    setIsProcessing(false);
   };
 
   return {
@@ -359,6 +398,8 @@ For ALL OTHER responses, or AFTER you have used a tool, you MUST respond ONLY wi
     loadingStatus,
     activeKeyEmail,
     pendingForm,
-    formResolverRef
+    formResolverRef,
+    systemError,
+    retryFailedRequest
   };
 }

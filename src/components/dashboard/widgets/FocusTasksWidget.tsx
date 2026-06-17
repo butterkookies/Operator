@@ -54,39 +54,31 @@ export function FocusTasksWidget({ session, tasks, setTasks, activeTaskId, setAc
 
   return (
     <div className="flex flex-col h-full">
-      <h2 className="text-lg font-black text-gray-800 mb-4 border-b border-gray-100 pb-2 shrink-0">Focus Tasks</h2>
+      <h2 className="text-lg font-black text-neutral-200 mb-4 border-b border-neutral-800 pb-2 shrink-0">Focus Tasks</h2>
       
-      <div className="flex-1 overflow-y-auto pr-2 space-y-2">
-        {isLoading ? (
-          <div className="flex justify-center items-center h-full">
-            <div className="animate-pulse flex gap-1">
-              <div className="w-2 h-2 bg-indigo-400 rounded-full"></div>
-              <div className="w-2 h-2 bg-indigo-400 rounded-full animation-delay-200"></div>
-              <div className="w-2 h-2 bg-indigo-400 rounded-full animation-delay-400"></div>
-            </div>
-          </div>
-        ) : tasks.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center mt-10">You have no pending tasks. Enjoy the zen.</p>
+      <div className="flex-1 overflow-y-auto pr-2">
+        {isLoading ? null : tasks.length === 0 ? (
+          <p className="text-sm text-neutral-500 text-center mt-10 animate-smooth-pop">You have no pending tasks. Enjoy the zen.</p>
         ) : (
-          <>
+          <div className="space-y-2 animate-smooth-pop">
             {tasks.map(task => (
               <div key={task.id}
                 className={`group flex items-center gap-3 p-3 rounded-xl border transition-all text-sm
                   ${activeTaskId === task.id 
-                    ? 'border-indigo-500 bg-indigo-50/50 shadow-sm ring-1 ring-indigo-500' 
-                    : 'border-gray-200 bg-white hover:border-indigo-300'}`}
+                    ? 'border-indigo-500 bg-indigo-900/20/50 shadow-sm ring-1 ring-indigo-500' 
+                    : 'border-neutral-700 bg-neutral-900 hover:border-indigo-300'}`}
                 onClick={() => { if (!task.is_completed) setActiveTaskId(activeTaskId === task.id ? null : task.id); }}
                 style={{ cursor: task.is_completed ? 'default' : 'pointer' }}
               >
                 <button 
                   onClick={(e) => { e.stopPropagation(); toggleTask(task); }} 
                   className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors shrink-0
-                    ${task.is_completed ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 bg-white hover:border-indigo-400'}`}
+                    ${task.is_completed ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-neutral-600 bg-neutral-900 hover:border-indigo-400'}`}
                 >
                   {task.is_completed && <Check size={12} strokeWidth={3} />}
                 </button>
                 
-                <span className={`flex-1 transition-all ${task.is_completed ? 'text-gray-400 line-through' : 'text-gray-800 font-medium'}`}>
+                <span className={`flex-1 transition-all ${task.is_completed ? 'text-neutral-500 line-through' : 'text-neutral-200 font-medium'}`}>
                   {task.title}
                 </span>
                 
@@ -98,7 +90,7 @@ export function FocusTasksWidget({ session, tasks, setTasks, activeTaskId, setAc
                 
                 <button 
                   onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }} 
-                  className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all p-1 shrink-0"
+                  className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-red-500 transition-all p-1 shrink-0"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -109,23 +101,23 @@ export function FocusTasksWidget({ session, tasks, setTasks, activeTaskId, setAc
               <button 
                 onClick={onLoadMore}
                 disabled={isLoadingMore}
-                className="w-full py-3 mt-4 text-xs font-bold text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3 mt-4 text-xs font-bold text-neutral-500 border border-neutral-700 rounded-xl hover:bg-neutral-800 hover:text-neutral-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isLoadingMore ? <Loader2 size={14} className="animate-spin" /> : 'Load More Tasks'}
               </button>
             )}
-          </>
+          </div>
         )}
       </div>
 
-      <form onSubmit={addTask} className="mt-4 pt-4 border-t border-gray-100 shrink-0 relative">
+      <form onSubmit={addTask} className="mt-4 pt-4 border-t border-neutral-800 shrink-0 relative">
         <div className="relative flex items-center">
           <input 
             type="text" 
             value={newTaskTitle} 
             onChange={e => setNewTaskTitle(e.target.value)} 
             placeholder="Add a new task..." 
-            className="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all" 
+            className="w-full pl-4 pr-12 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-sm outline-none focus:bg-neutral-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all" 
           />
           <button 
             type="submit" 

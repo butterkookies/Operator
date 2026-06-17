@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operator - High Fidelity UI Wireframe</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .app-view { display: none; flex-direction: column; flex: 1; }
+    .app-view.active { display: flex; }
+    
+    /* Custom Scrollbar for dark mode */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+    /* Feedback Tool Styles */
+    #feedback-bar {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #171717; /* neutral-900 */
+      border: 1px solid #3f3f46; /* neutral-700 */
+      border-radius: 12px;
+      padding: 16px;
+      z-index: 10000;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+      color: white;
+    }
+    
+    /* In-page Comment Box Styles */
+    .comment-box {
+      position: absolute;
+      width: 300px;
+      background: #171717;
+      border: 1px solid #4f46e5; /* indigo-600 */
+      border-radius: 12px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(79, 70, 229, 0.3);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .comment-header {
+      background: #4f46e5;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: move;
+      color: white;
+    }
+    .comment-close {
+      cursor: pointer;
+      color: #e0e7ff;
+      font-size: 20px;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+    .comment-close:hover {
+      color: #ffffff;
+    }
+    .comment-body {
+      padding: 12px;
+      background: #171717;
+    }
+    .comment-textarea {
+      width: 100%;
+      min-height: 120px;
+      background: #262626; /* neutral-800 */
+      border: 1px solid #404040; /* neutral-700 */
+      border-radius: 8px;
+      color: white;
+      resize: vertical;
+      padding: 10px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .comment-textarea:focus {
+      border-color: #818cf8; /* indigo-400 */
+    }
+    .comment-textarea::placeholder {
+      color: #737373;
+    }
+  </style>
+</head>
+<body class="bg-neutral-900 text-white overflow-hidden flex h-screen">
+
+  <!-- FEEDBACK TOOLBAR -->
+  <div id="feedback-bar" class="flex flex-col gap-3">
+    <div class="font-bold text-sm text-indigo-300">Feedback Mode Active</div>
+    <div class="text-xs text-neutral-400">Right-Click anywhere to drop a Note</div>
+    <button onclick="copyComments()" class="mt-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4 py-2.5 text-sm font-bold transition-all shadow-md active:scale-95 flex items-center justify-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+      Copy All as Prompt
+    </button>
+  </div>
+
+  <!-- SIDEBAR UI -->
+  <div class="w-64 bg-neutral-950 border-r border-neutral-800 p-4 flex flex-col shrink-0 z-20">
+    <div class="flex items-center gap-3 mb-8 px-2">
+      <div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center font-bold text-lg shadow-inner">
+        O
+      </div>
+      <span class="font-black text-xl tracking-tight text-white">OPERATOR</span>
+    </div>
+
+    <button class="w-full mb-6 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white rounded-xl py-3 px-4 flex items-center justify-center gap-2 font-bold text-sm transition-all shadow-sm" onclick="switchView('view-chat')">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      New Chat
+    </button>
+
+    <div class="space-y-1 shrink-0">
+      <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-bold bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 transition-colors" onclick="switchView('view-chat')" id="nav-chat">
+        <div class="flex items-center gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          Chat
+        </div>
+      </button>
+
+      <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-bold text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors" onclick="switchView('view-zen')" id="nav-zen">
+        <div class="flex items-center gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          Zen Dashboard
+        </div>
+      </button>
+
+      <button class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-bold text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors" onclick="switchView('view-inbox')" id="nav-inbox">
+        <div class="flex items-center gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+          Inbox
+        </div>
+      </button>
+    </div>
+
+    <!-- Chat History List (Scrollable Flexible Area) -->
+    <div class="flex-1 flex flex-col overflow-hidden mt-4 pt-4 border-t border-neutral-800">
+      <div class="px-3 py-1 text-[10px] font-black uppercase text-neutral-500 tracking-wider mb-2 shrink-0">Recent Chats</div>
+      <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-0.5 -mx-2 px-2">
+        <button class="w-full text-left px-3 py-2 rounded-lg text-sm text-neutral-400 hover:text-white hover:bg-neutral-800 truncate flex items-center gap-2 transition-all" onclick="switchView('view-chat')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <span class="truncate">Brainstorming UI</span>
+        </button>
+        <button class="w-full text-left px-3 py-2 rounded-lg text-sm text-neutral-400 hover:text-white hover:bg-neutral-800 truncate flex items-center gap-2 transition-all" onclick="switchView('view-chat')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <span class="truncate">Project Operator Setup</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="mt-auto border-t border-neutral-800 pt-4">
+      <button class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors" onclick="switchView('view-settings')" id="nav-settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        Settings
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN AREA CONTAINER -->
+  <main class="flex-1 overflow-hidden flex flex-col relative bg-neutral-900" id="main-container">
+    
+    <!-- 1. CHAT VIEW -->
+    <div id="view-chat" class="app-view active bg-neutral-900 overflow-hidden relative">
+      <div class="h-14 border-b border-neutral-800 flex items-center px-4 justify-between bg-neutral-900/50 backdrop-blur-sm z-10 shrink-0">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-400"><path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"></path><path d="M12 8a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"></path><path d="M12 14a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"></path><path d="M12 20a2 2 0 0 1 2 2 2 2 0 0 1-2-2a2 2 0 0 1 2-2z"></path></svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-white">Operator AI</h3>
+            <p class="text-xs text-neutral-500 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Online
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-neutral-900">
+        <div class="flex gap-4 justify-end">
+          <div class="max-w-[85%] md:max-w-[75%] rounded-2xl px-5 py-3.5 bg-indigo-600 text-white shadow-md">
+            <div class="text-sm leading-relaxed">Let's design the new UI.</div>
+          </div>
+          <div class="w-8 h-8 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center shrink-0 mt-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-400"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </div>
+        </div>
+
+        <div class="flex gap-4 justify-start">
+          <div class="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0 mt-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-400"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>
+          </div>
+          <div class="max-w-[85%] md:max-w-[75%] rounded-2xl px-5 py-3.5 bg-neutral-800 border border-neutral-700 text-neutral-200">
+            <div class="text-sm leading-relaxed">Absolutely! I'm ready to map out the real changes you want with the exact UI/UX possible. How should we proceed?</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="p-4 bg-neutral-900 border-t border-neutral-800 z-10 shrink-0">
+        <form class="relative max-w-4xl mx-auto">
+          <input type="text" placeholder="Message Operator..." class="w-full bg-neutral-950 border border-neutral-800 text-white rounded-xl pl-4 pr-12 py-3.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-neutral-600" />
+          <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 2. ZEN DASHBOARD VIEW -->
+    <div id="view-zen" class="app-view bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden p-8 m-6 overflow-y-auto">
+      <h2 class="font-bold text-2xl text-white mb-8 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-400"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        Zen Dashboard
+      </h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Pomodoro & Tasks -->
+        <div class="col-span-1 space-y-6">
+          <div class="bg-neutral-950 border border-neutral-800 rounded-xl p-6 flex flex-col items-center justify-center h-48 shadow-lg">
+            <div class="text-neutral-400 text-sm font-bold uppercase tracking-widest mb-2">Focus Mode</div>
+            <div class="text-5xl font-black text-indigo-400">25:00</div>
+            <div class="flex gap-2 mt-4">
+              <button class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded-lg text-sm font-bold transition-colors">Start</button>
+              <button class="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-4 py-1.5 rounded-lg text-sm font-bold transition-colors">Reset</button>
+            </div>
+          </div>
+          
+          <div class="bg-neutral-950 border border-neutral-800 rounded-xl p-5 shadow-lg">
+            <h3 class="font-bold text-white mb-4 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-400"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><path d="m9 12 2 2 4-4"></path></svg> Focus Tasks</h3>
+            <div class="space-y-2">
+              <label class="flex items-center gap-3 p-2 hover:bg-neutral-900 rounded-lg cursor-pointer transition-colors">
+                <input type="checkbox" class="w-4 h-4 rounded border-neutral-600 bg-neutral-800 accent-indigo-500" />
+                <span class="text-sm text-neutral-300">Complete wireframe UI layout</span>
+              </label>
+              <label class="flex items-center gap-3 p-2 hover:bg-neutral-900 rounded-lg cursor-pointer transition-colors">
+                <input type="checkbox" class="w-4 h-4 rounded border-neutral-600 bg-neutral-800 accent-indigo-500" />
+                <span class="text-sm text-neutral-300">Review PR #104</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Agenda & Vault -->
+        <div class="col-span-2 space-y-6">
+          <div class="bg-neutral-950 border border-neutral-800 rounded-xl p-5 shadow-lg">
+            <h3 class="font-bold text-white mb-4 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-400"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Daily Agenda</h3>
+            <div class="flex flex-col gap-3">
+              <div class="flex items-start gap-4 p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
+                <div class="text-indigo-400 font-bold text-sm w-16 pt-0.5">10:00</div>
+                <div class="flex-1"><div class="font-bold text-white text-sm">Team Standup</div><div class="text-xs text-indigo-300">Sync with the team on Operator progress</div></div>
+              </div>
+              <div class="flex items-start gap-4 p-3 rounded-lg bg-neutral-900 border border-neutral-800">
+                <div class="text-neutral-500 font-bold text-sm w-16 pt-0.5">13:30</div>
+                <div class="flex-1"><div class="font-bold text-neutral-300 text-sm">Design Review</div><div class="text-xs text-neutral-500">Go over the new high fidelity wireframes</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-neutral-950 border border-neutral-800 rounded-xl p-5 shadow-lg flex-1">
+            <h3 class="font-bold text-white mb-4 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-400"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M2 15h10"></path><path d="m9 18 3-3-3-3"></path></svg> Notes Vault</h3>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-neutral-900 border border-neutral-800 p-4 rounded-lg hover:border-indigo-500/50 cursor-pointer transition-colors">
+                <div class="font-bold text-white text-sm mb-1">Architecture Plan</div>
+                <div class="text-xs text-neutral-500 line-clamp-2">The new system will rely on a monolithic frontend with separated sub-components...</div>
+              </div>
+              <div class="bg-neutral-900 border border-neutral-800 p-4 rounded-lg hover:border-indigo-500/50 cursor-pointer transition-colors">
+                <div class="font-bold text-white text-sm mb-1">Ideas for Chat</div>
+                <div class="text-xs text-neutral-500 line-clamp-2">Add voice transcription and visual feedback tools directly into the UI...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. INBOX VIEW -->
+    <div id="view-inbox" class="app-view bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden p-8 m-6 overflow-y-auto">
+      <h2 class="font-bold text-2xl text-white mb-8 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-400"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
+        Thought Inbox
+      </h2>
+      
+      <div class="bg-neutral-950 border border-neutral-800 rounded-xl p-2 mb-6 flex gap-2 items-center focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all">
+        <input type="text" placeholder="Quick capture thought..." class="bg-transparent text-white w-full px-3 py-2 outline-none text-sm placeholder:text-neutral-600" />
+        <button class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">Save</button>
+      </div>
+
+      <div class="space-y-3">
+        <div class="bg-neutral-950 border border-neutral-800 rounded-xl p-4 flex justify-between items-center group hover:border-neutral-700 transition-colors">
+          <span class="text-neutral-300 text-sm">Remember to update the Supabase schema for the new notes table</span>
+          <button class="text-neutral-600 hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+          </button>
+        </div>
+        <div class="bg-neutral-950 border border-neutral-800 rounded-xl p-4 flex justify-between items-center group hover:border-neutral-700 transition-colors">
+          <span class="text-neutral-300 text-sm">Book flights for next week's conference</span>
+          <button class="text-neutral-600 hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. SETTINGS VIEW -->
+    <div id="view-settings" class="app-view bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden p-8 m-6 overflow-y-auto">
+      <div class="max-w-2xl mx-auto w-full">
+        <h2 class="font-bold text-2xl text-white mb-8">Account Settings</h2>
+        
+        <div class="bg-neutral-950 border border-neutral-800 rounded-xl p-6 shadow-lg mb-6">
+          <h3 class="font-bold text-white border-b border-neutral-800 pb-3 mb-4 text-sm uppercase tracking-wider text-neutral-400">Profile</h3>
+          <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
+              <span class="text-indigo-400 text-2xl font-bold">U</span>
+            </div>
+            <div>
+              <div class="font-bold text-white">Operator User</div>
+              <div class="text-sm text-neutral-500">user@operator.ai</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-neutral-950 border border-neutral-800 rounded-xl p-6 shadow-lg mb-6">
+          <h3 class="font-bold text-white border-b border-neutral-800 pb-3 mb-4 text-sm uppercase tracking-wider text-neutral-400">Integrations</h3>
+          <div class="space-y-4">
+            <div class="flex justify-between items-center bg-neutral-900 p-3 rounded-lg border border-neutral-800">
+              <span class="text-neutral-300 font-medium text-sm">Google Calendar</span>
+              <button class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-md text-xs font-bold transition-colors">Connect</button>
+            </div>
+            <div class="flex justify-between items-center bg-neutral-900 p-3 rounded-lg border border-neutral-800">
+              <span class="text-neutral-300 font-medium text-sm">Google Drive</span>
+              <button class="bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700 px-3 py-1.5 rounded-md text-xs font-bold transition-colors">Connect</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-neutral-950 border border-neutral-800 rounded-xl p-6 shadow-lg">
+          <h3 class="font-bold text-white border-b border-neutral-800 pb-3 mb-4 text-sm uppercase tracking-wider text-neutral-400">API Keys</h3>
+          <div class="space-y-4">
+            <div class="flex justify-between items-center bg-neutral-900 p-3 rounded-lg border border-neutral-800">
+              <span class="text-neutral-300 font-medium text-sm">Gemini API Key</span>
+              <button class="bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700 px-3 py-1.5 rounded-md text-xs font-bold transition-colors">Edit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // Navigation Logic
+    function switchView(viewId) {
+      document.querySelectorAll('.app-view').forEach(el => el.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
+      
+      // Update sidebar nav active state
+      document.querySelectorAll('nav button').forEach(el => {
+        el.className = "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-bold text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors";
+      });
+      
+      const navBtnId = viewId.replace('view-', 'nav-');
+      const activeBtn = document.getElementById(navBtnId);
+      if (activeBtn) {
+        activeBtn.className = "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-bold bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 transition-colors";
+      }
+    }
+
+    // Feedback System Logic
+    let comments = [];
+    let commentIdCounter = 0;
+
+    document.addEventListener('contextmenu', (e) => {
+      // Ignore clicks on existing comment boxes or the toolbar
+      if(e.target.closest('#feedback-bar') || e.target.closest('.comment-box')) return;
+      e.preventDefault();
+      
+      const x = e.clientX;
+      const y = e.clientY;
+      const currentView = document.querySelector('.app-view.active').id;
+      
+      // Get structural info about where they clicked
+      let targetInfo = e.target.tagName.toLowerCase();
+      if(e.target.className && typeof e.target.className === 'string') {
+        const classes = e.target.className.split(' ').filter(c => c.length > 0 && !c.includes('hover:') && !c.includes('focus:')).slice(0, 3).join('.');
+        if(classes) targetInfo += '.' + classes;
+      }
+      
+      const id = ++commentIdCounter;
+      const commentObj = {
+        id: id,
+        view: currentView,
+        x: x,
+        y: y,
+        target: targetInfo,
+        text: ''
+      };
+      
+      comments.push(commentObj);
+      renderCommentBox(commentObj);
+    });
+
+    function renderCommentBox(comment) {
+      const box = document.createElement('div');
+      box.className = 'comment-box';
+      box.style.left = comment.x + 'px';
+      box.style.top = comment.y + 'px';
+      box.id = 'comment-' + comment.id;
+
+      // Header with close button
+      const header = document.createElement('div');
+      header.className = 'comment-header';
+      
+      const title = document.createElement('span');
+      title.innerText = 'Design Feedback';
+      title.style.fontSize = '12px';
+      title.style.fontWeight = 'bold';
+
+      const closeBtn = document.createElement('span');
+      closeBtn.className = 'comment-close';
+      closeBtn.innerHTML = '&times;';
+      closeBtn.title = "Remove Comment";
+      closeBtn.onclick = () => {
+        box.remove();
+        comments = comments.filter(c => c.id !== comment.id);
+      };
+
+      header.appendChild(title);
+      header.appendChild(closeBtn);
+
+      // Body with text area
+      const body = document.createElement('div');
+      body.className = 'comment-body';
+
+      const textarea = document.createElement('textarea');
+      textarea.className = 'comment-textarea';
+      textarea.placeholder = 'Describe your UI/UX changes, new features, or design tweaks here...';
+      textarea.value = comment.text;
+      
+      // Update data model as user types
+      textarea.oninput = (e) => {
+        comment.text = e.target.value;
+      };
+
+      // Prevent native context menu from opening inside the text area
+      textarea.addEventListener('contextmenu', (e) => e.stopPropagation());
+
+      body.appendChild(textarea);
+      box.appendChild(header);
+      box.appendChild(body);
+
+      document.body.appendChild(box);
+      
+      // Auto-focus the new textarea
+      textarea.focus();
+    }
+
+    function copyComments() {
+      const validComments = comments.filter(c => c.text.trim() !== '');
+      
+      if (validComments.length === 0) {
+        alert("No comments with text to copy. Right-click, type a design change, then try again.");
+        return;
+      }
+
+      let output = `[UI/UX DESIGN FEEDBACK PROMPT]\n`;
+      output += `Here is the requested design and feature updates mapped directly from the high-fidelity wireframe:\n\n`;
+
+      validComments.forEach((c, index) => {
+        output += `### UI Update #${index + 1}\n`;
+        output += `- View Context: ${c.view.replace('view-', '').toUpperCase()}\n`;
+        output += `- Element Target: <${c.target}>\n`;
+        output += `- Position: (X: ${c.x}, Y: ${c.y})\n`;
+        output += `- Requested Change: ${c.text.trim()}\n\n`;
+      });
+
+      navigator.clipboard.writeText(output).then(() => {
+        const btn = document.querySelector('#feedback-bar button');
+        const oldHTML = btn.innerHTML;
+        btn.innerHTML = "✓ Copied Successfully!";
+        btn.classList.add("bg-green-600");
+        btn.classList.remove("bg-indigo-600", "hover:bg-indigo-500");
+        setTimeout(() => {
+          btn.innerHTML = oldHTML;
+          btn.classList.remove("bg-green-600");
+          btn.classList.add("bg-indigo-600", "hover:bg-indigo-500");
+        }, 2000);
+      }).catch(err => {
+        alert("Failed to copy: " + err);
+      });
+    }
+  </script>
+</body>
+</html>

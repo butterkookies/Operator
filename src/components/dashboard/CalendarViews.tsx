@@ -39,12 +39,12 @@ export function TodayView({ events }: { events: GoogleEvent[] }) {
   const currentPercent = ((nowTime.getHours() * 60 + nowTime.getMinutes()) / (24 * 60)) * 100;
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg border border-gray-200 overflow-hidden relative">
+    <div className="flex flex-col h-full bg-neutral-900 rounded-lg border border-neutral-700 overflow-hidden relative">
       
       {/* All Day Section */}
       {allDayEvents.length > 0 && (
-        <div className="border-b border-gray-200 p-2 bg-gray-50 flex flex-col gap-1 z-10 relative shadow-sm">
-          <p className="text-xs font-bold text-gray-500 mb-1 uppercase">All Day</p>
+        <div className="border-b border-neutral-700 p-2 bg-neutral-800 flex flex-col gap-1 z-10 relative shadow-sm">
+          <p className="text-xs font-bold text-neutral-500 mb-1 uppercase">All Day</p>
           {allDayEvents.map(e => (
             <a key={e.id} href={e.htmlLink} target="_blank" rel="noopener noreferrer" 
                className="text-xs font-bold px-2 py-1 rounded text-white truncate hover:opacity-80 transition-opacity block"
@@ -56,13 +56,13 @@ export function TodayView({ events }: { events: GoogleEvent[] }) {
       )}
 
       {/* Timeline Grid */}
-      <div className="flex-grow overflow-y-auto relative bg-white">
+      <div className="flex-grow overflow-y-auto relative bg-neutral-900">
         <div className="relative min-h-[720px]"> {/* Compressed height for better fit */}
           
           {/* Background Grid Lines */}
           {hours.map(hour => (
-            <div key={hour} className="absolute w-full flex items-start border-t border-gray-100" style={{ top: `${(hour / 24) * 100}%`, height: `${(1 / 24) * 100}%` }}>
-              <span className="text-[10px] text-gray-500 font-bold w-14 text-right pr-2 -mt-2 bg-white">
+            <div key={hour} className="absolute w-full flex items-start border-t border-neutral-800" style={{ top: `${(hour / 24) * 100}%`, height: `${(1 / 24) * 100}%` }}>
+              <span className="text-[10px] text-neutral-500 font-bold w-14 text-right pr-2 -mt-2 bg-neutral-900">
                 {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
               </span>
             </div>
@@ -120,26 +120,26 @@ export function WeekView({ events }: { events: GoogleEvent[] }) {
   });
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg border border-gray-200 overflow-hidden relative">
+    <div className="flex flex-col h-full bg-neutral-900 rounded-lg border border-neutral-700 overflow-hidden relative">
       
       {/* Week Header */}
-      <div className="flex border-b border-gray-200 bg-gray-50 z-10 shadow-sm pl-14">
+      <div className="flex border-b border-neutral-700 bg-neutral-800 z-10 shadow-sm pl-14">
         {days.map((day) => (
-          <div key={day} className="flex-1 text-center py-2 border-l border-gray-100">
-            <div className="text-xs font-bold text-gray-500 uppercase">{day}</div>
+          <div key={day} className="flex-1 text-center py-2 border-l border-neutral-800">
+            <div className="text-xs font-bold text-neutral-500 uppercase">{day}</div>
           </div>
         ))}
       </div>
 
       {/* Week Grid */}
-      <div className="flex-grow overflow-y-auto relative bg-white">
+      <div className="flex-grow overflow-y-auto relative bg-neutral-900">
         <div className="relative min-h-[720px] flex"> {/* Compressed height */}
           
           {/* Background Grid Lines (Absolute behind everything) */}
           <div className="absolute inset-0 z-0">
             {hours.map(hour => (
-              <div key={hour} className="absolute w-full border-t border-gray-100" style={{ top: `${(hour / 24) * 100}%` }}>
-                <span className="absolute left-0 text-[10px] text-gray-500 font-bold w-14 text-right pr-2 -mt-2 bg-white z-10">
+              <div key={hour} className="absolute w-full border-t border-neutral-800" style={{ top: `${(hour / 24) * 100}%` }}>
+                <span className="absolute left-0 text-[10px] text-neutral-500 font-bold w-14 text-right pr-2 -mt-2 bg-neutral-900 z-10">
                   {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
                 </span>
               </div>
@@ -159,10 +159,10 @@ export function WeekView({ events }: { events: GoogleEvent[] }) {
               const allDayEvents = dayEvents.filter(e => e.start.date);
               
               return (
-                <div key={day} className="flex-1 border-l border-gray-100 relative">
+                <div key={day} className="flex-1 border-l border-neutral-800 relative">
                   
                   {/* All day events at very top of column (static height overlay) */}
-                  <div className="absolute top-0 left-0 right-0 z-20 flex flex-col gap-0.5 p-0.5 bg-white/80">
+                  <div className="absolute top-0 left-0 right-0 z-20 flex flex-col gap-0.5 p-0.5 bg-neutral-900/80">
                     {allDayEvents.map(e => (
                       <a key={e.id} href={e.htmlLink} target="_blank" rel="noopener noreferrer"
                          className="text-[9px] font-bold px-1 rounded text-white truncate block"
@@ -231,12 +231,12 @@ export function MonthView({ events }: { events: GoogleEvent[] }) {
   });
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div className="flex flex-col h-full bg-neutral-900 rounded-lg border border-neutral-700 overflow-hidden">
       {/* Month Header */}
-      <div className="flex border-b border-gray-200 bg-gray-50 shrink-0">
+      <div className="flex border-b border-neutral-700 bg-neutral-800 shrink-0">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="flex-1 text-center py-2 border-l border-gray-100 first:border-l-0">
-            <div className="text-xs font-bold text-gray-500 uppercase">{day}</div>
+          <div key={day} className="flex-1 text-center py-2 border-l border-neutral-800 first:border-l-0">
+            <div className="text-xs font-bold text-neutral-500 uppercase">{day}</div>
           </div>
         ))}
       </div>
@@ -244,10 +244,10 @@ export function MonthView({ events }: { events: GoogleEvent[] }) {
       {/* Grid */}
       <div className="flex-grow grid grid-cols-7 grid-rows-[repeat(auto-fit,minmax(0,1fr))] auto-rows-fr">
         {days.map((dayNum, idx) => (
-          <div key={idx} className="border-b border-r border-gray-100 p-1 min-h-[80px] flex flex-col relative bg-white overflow-hidden">
+          <div key={idx} className="border-b border-r border-neutral-800 p-1 min-h-[80px] flex flex-col relative bg-neutral-900 overflow-hidden">
             {dayNum ? (
               <>
-                <div className="text-sm font-bold text-gray-700 mb-1 pl-1">{dayNum}</div>
+                <div className="text-sm font-bold text-neutral-300 mb-1 pl-1">{dayNum}</div>
                 <div className="flex flex-col gap-1 overflow-y-auto flex-grow pb-1 pr-1">
                   {(eventsByDay[dayNum] || []).map(e => {
                     const timeStr = e.start.dateTime ? new Date(e.start.dateTime).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}) + ' ' : '';
@@ -263,7 +263,7 @@ export function MonthView({ events }: { events: GoogleEvent[] }) {
                 </div>
               </>
             ) : (
-              <div className="w-full h-full bg-gray-50"></div> // Padding cell
+              <div className="w-full h-full bg-neutral-800"></div> // Padding cell
             )}
           </div>
         ))}
@@ -292,11 +292,11 @@ export function YearView({ events }: { events: GoogleEvent[] }) {
   });
 
   const getHeatmapColor = (count: number) => {
-    if (count === 0) return 'bg-gray-100';
+    if (count === 0) return 'bg-neutral-800';
     if (count === 1) return 'bg-indigo-300';
     if (count === 2) return 'bg-indigo-500';
     if (count >= 3) return 'bg-indigo-700';
-    return 'bg-gray-100';
+    return 'bg-neutral-800';
   };
 
   return (
@@ -313,8 +313,8 @@ export function YearView({ events }: { events: GoogleEvent[] }) {
         const monthName = new Date(currentYear, month, 1).toLocaleDateString([], { month: 'short' });
 
         return (
-          <div key={month} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex flex-col">
-            <h3 className="font-bold text-indigo-700 text-sm mb-3 m-0">{monthName}</h3>
+          <div key={month} className="bg-neutral-900 border border-neutral-700 rounded-lg p-4 shadow-sm flex flex-col">
+            <h3 className="font-bold text-indigo-400 text-sm mb-3 m-0">{monthName}</h3>
             <div className="grid grid-cols-7 gap-1 flex-grow">
               {days.map((dayNum, idx) => {
                 const count = dayNum ? (eventsByDate[month]?.[dayNum] || 0) : 0;
@@ -324,7 +324,7 @@ export function YearView({ events }: { events: GoogleEvent[] }) {
                        title={dayNum ? `${monthName} ${dayNum}: ${count} event(s)` : ''}
                   >
                     {dayNum && (
-                      <span className={`text-[8px] font-bold ${count > 0 ? 'text-white drop-shadow-md' : 'text-gray-400'}`}>
+                      <span className={`text-[8px] font-bold ${count > 0 ? 'text-white drop-shadow-md' : 'text-neutral-500'}`}>
                         {dayNum}
                       </span>
                     )}

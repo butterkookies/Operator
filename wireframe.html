@@ -3,773 +3,365 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Operator - Calendar Layout Prototype</title>
+  <title>Operator - Interactive Structural Wireframe</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
-
-    :root {
-      --bg-color: #e6e4df;
-      --panel-bg: #fcfbf9;
-      --text-main: #1f2937;
-      --text-muted: #6b7280;
-      --accent: #4f46e5;
-      --border: #d1d5db;
-      
-      /* Google Calendar Native Colors */
-      --g-tomato: #D50000;
-      --g-flamingo: #E67C73;
-      --g-tangerine: #F4511E;
-      --g-banana: #F6BF26;
-      --g-sage: #33B679;
-      --g-basil: #0B8043;
-      --g-peacock: #039BE5;
-      --g-blueberry: #3F51B5;
-      --g-lavender: #7986CB;
-      --g-grape: #8E24AA;
-      --g-graphite: #616161;
-    }
-
-    body {
-      margin: 0;
-      font-family: 'Inter', sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      padding: 20px;
-      box-sizing: border-box;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .grid-container {
-      display: grid;
-      grid-template-columns: 1fr 2.5fr 1fr; /* Center is wider now */
-      gap: 20px;
-      flex-grow: 1;
-      height: calc(100vh - 80px);
-    }
-
-    .panel {
-      background-color: var(--panel-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    /* CENTER STAGE NAVIGATION */
-    .center-nav {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-      border-bottom: 2px solid #e5e7eb;
-      padding-bottom: 10px;
-    }
-
-    .center-tab {
-      font-weight: 700;
-      font-size: 16px;
-      color: var(--text-muted);
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 5px 10px;
-      transition: color 0.2s;
-    }
-
-    .center-tab.active {
-      color: var(--text-main);
-      border-bottom: 3px solid var(--accent);
-      margin-bottom: -13px; /* Pull down over the border */
-    }
-
-    /* CALENDAR VIEWS CONTAINER */
-    .calendar-container {
-      display: none; /* Toggled by JS */
-      flex-direction: column;
-      flex-grow: 1;
-      overflow: hidden;
-    }
-
-    .calendar-container.active {
-      display: flex;
-    }
-
-    .cal-controls {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .cal-title {
-      font-size: 24px;
-      font-weight: 900;
-      margin: 0;
-    }
-
-    .cal-view-toggles {
-      display: flex;
-      background: #f3f4f6;
-      border-radius: 8px;
-      padding: 3px;
-    }
-
-    .cal-view-btn {
-      border: none;
-      background: transparent;
-      padding: 6px 12px;
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text-muted);
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .cal-view-btn.active {
-      background: white;
-      color: var(--accent);
-      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    }
-
-    /* VIEW SCREENS */
-    .view-screen {
-      display: none;
-      flex-grow: 1;
-      overflow-y: auto;
-    }
-    .view-screen.active {
-      display: block;
-    }
-
-    /* TODAY VIEW */
-    .today-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .agenda-item {
-      display: flex;
-      align-items: center;
-      padding: 15px;
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      gap: 15px;
-    }
-    .agenda-time { font-weight: 700; width: 80px; font-size: 14px; }
-    .agenda-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-    .agenda-content { flex-grow: 1; }
-    .agenda-title { font-weight: 700; margin: 0 0 4px 0; }
-    .agenda-cal { font-size: 12px; color: var(--text-muted); margin: 0; }
-
-    /* WEEK VIEW */
-    .week-grid {
-      display: flex;
-      height: 100%;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      overflow: hidden;
-      background: white;
-    }
-    .week-col {
-      flex: 1;
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-    }
-    .week-col:last-child { border-right: none; }
-    .week-header {
-      text-align: center;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--border);
-      background: #f9fafb;
-    }
-    .week-day-name { font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); }
-    .week-day-num { font-size: 20px; font-weight: 900; }
-    .week-body {
-      flex-grow: 1;
-      padding: 5px;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      overflow-y: auto;
-    }
-    .week-event {
-      padding: 6px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 700;
-      color: white;
-      cursor: pointer;
-    }
+    body { font-family: monospace; }
+    .wireframe-block { border: 1px solid black; background: white; }
+    .wireframe-box { border: 1px dashed gray; padding: 8px; margin: 4px; }
+    .app-view { display: none; flex-direction: column; flex: 1; }
+    .app-view.active { display: flex; }
+    .nav-btn { cursor: pointer; transition: background 0.2s; }
+    .nav-btn:hover { background: #f0f0f0; }
     
-    /* MONTH VIEW */
-    .month-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      height: 100%;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      overflow: hidden;
-      background: white;
-    }
-    .month-day-header {
-      text-align: center;
-      padding: 8px 0;
-      font-size: 11px;
-      text-transform: uppercase;
-      font-weight: 700;
-      color: var(--text-muted);
-      border-bottom: 1px solid var(--border);
-      border-right: 1px solid var(--border);
-      background: #f9fafb;
-    }
-    .month-day-header:nth-child(7) { border-right: none; }
-    .month-cell {
-      border-right: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      padding: 5px;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-    .month-cell:nth-child(7n) { border-right: none; }
-    .month-date-num {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text-muted);
-      margin-bottom: 5px;
-    }
-    .month-cell.active-month .month-date-num { color: var(--text-main); }
-    .month-event {
-      font-size: 10px;
-      font-weight: 700;
-      padding: 2px 4px;
-      border-radius: 3px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: white;
-    }
-
-    /* YEAR VIEW */
-    .year-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      grid-template-rows: repeat(3, 1fr);
-      gap: 15px;
-      height: 100%;
-    }
-    .mini-month {
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-    }
-    .mini-month-title {
-      font-size: 14px;
-      font-weight: 900;
-      color: var(--accent);
-      margin: 0 0 10px 0;
-    }
-    .mini-month-days {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 2px;
-    }
-    .mini-day {
-      aspect-ratio: 1;
-      border-radius: 2px;
-      background: #f3f4f6;
-    }
-    .mini-day.has-event { background: var(--accent); opacity: 0.7; }
-    .mini-day.has-many { background: var(--g-tomato); }
-
-    /* FOCUS MODE CONTAINER (Classic center) */
-    .focus-container {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      flex-grow: 1;
-    }
-    .focus-container.active { display: flex; }
-    .focus-container.hidden { display: none; }
-    
-    .pomodoro {
-      background: var(--panel-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      height: 200px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-    .console {
-      background: #1a1b26;
-      border-radius: 12px;
-      flex-grow: 1;
-      color: #4ade80;
-      font-family: monospace;
-      padding: 20px;
-    }
-
-    /* VISUAL FEEDBACK TOOL BAR & STICKY NOTES */
-    #tools-bar {
+    /* Feedback Tool Styles */
+    #feedback-bar {
       position: fixed;
       bottom: 20px;
-      left: 20px;
-      background: #1f2937;
-      color: white;
-      padding: 15px 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-      z-index: 1000;
-      display: flex;
-      gap: 15px;
-      align-items: center;
-    }
-    #tools-bar button {
-      background: #4f46e5;
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: 700;
-    }
-    .sticky-note {
-      position: absolute;
-      width: 250px;
-      background: #fef08a;
-      border: 1px solid #ca8a04;
-      box-shadow: 2px 4px 10px rgba(0,0,0,0.15);
-      border-radius: 4px;
+      right: 20px;
+      background: white;
+      border: 2px solid black;
       padding: 10px;
-      z-index: 999;
-      font-family: sans-serif;
+      z-index: 10000;
+      box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
     }
-    .sticky-note-header {
+    
+    /* In-page Comment Box Styles */
+    .comment-box {
+      position: absolute;
+      width: 280px;
+      background: #fff;
+      border: 2px solid #000;
+      box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+    }
+    .comment-header {
+      background: #f0f0f0;
+      border-bottom: 1px solid #000;
+      padding: 6px 10px;
       display: flex;
       justify-content: space-between;
-      cursor: grab;
-      font-weight: bold;
-      font-size: 12px;
-      margin-bottom: 5px;
-      color: #854d0e;
-      user-select: none;
+      align-items: center;
+      cursor: move;
     }
-    .sticky-note-header:active { cursor: grabbing; }
-    .sticky-note textarea {
+    .comment-close {
+      cursor: pointer;
+      font-weight: bold;
+      color: #ef4444;
+      font-size: 16px;
+      line-height: 1;
+    }
+    .comment-close:hover {
+      color: #b91c1c;
+    }
+    .comment-body {
+      padding: 8px;
+      background: #fafafa;
+    }
+    .comment-textarea {
       width: 100%;
-      height: 80px;
-      border: 1px solid #ca8a04;
-      background: #fef9c3;
-      resize: none;
-      box-sizing: border-box;
-      padding: 5px;
-      font-size: 14px;
+      min-height: 100px;
+      border: 1px dashed #a3a3a3;
+      resize: vertical;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 12px;
       outline: none;
+    }
+    .comment-textarea:focus {
+      border: 1px solid #3b82f6;
+      background: #fff;
     }
   </style>
 </head>
-<body>
+<body class="bg-gray-100 text-black overflow-hidden flex h-screen p-4 gap-4">
 
-  <!-- VISUAL FEEDBACK TOOL BAR -->
-  <div id="tools-bar">
-      <p style="margin: 0; font-size: 14px;"><strong>Visual Feedback Mode</strong><br>Right-click anywhere to add a comment.</p>
-      <button onclick="exportComments()">Export Feedback for AI</button>
-      <button onclick="clearAllNotes()" style="background:#dc2626;">Clear</button>
+  <!-- FEEDBACK TOOLBAR -->
+  <div id="feedback-bar" class="flex flex-col gap-2">
+    <div class="font-bold text-sm">Right-Click to drop a Comment Box</div>
+    <button onclick="copyComments()" class="border border-black px-3 py-2 bg-indigo-100 hover:bg-indigo-200 text-sm font-bold shadow-[2px_2px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:translate-x-[2px] active:shadow-none transition-all">
+      Copy All as Structured Prompt
+    </button>
   </div>
 
-  <div class="header">
-    <div>
-      <h1 style="margin:0; font-size: 24px; font-weight: 900;">Academics</h1>
-      <p style="margin:0; font-size: 14px; color: var(--text-muted);">Operator Wireframe Layout Test</p>
+  <!-- SIDEBAR WIREFRAME -->
+  <div class="w-64 flex flex-col shrink-0 wireframe-block p-4">
+    <div class="wireframe-box font-bold text-center mb-4">
+      [ LOGO ] OPERATOR
+    </div>
+
+    <button class="wireframe-box text-center w-full mb-4 nav-btn" onclick="switchView('view-chat')">
+      [+] New Chat Button
+    </button>
+
+    <div class="flex-1 space-y-2">
+      <button class="wireframe-box w-full text-left nav-btn" onclick="switchView('view-chat')">
+        [Icon] Chat Area
+      </button>
+      <button class="wireframe-box w-full text-left nav-btn" onclick="switchView('view-zen')">
+        [Icon] Zen Dashboard
+      </button>
+      <button class="wireframe-box w-full text-left nav-btn" onclick="switchView('view-inbox')">
+        [Icon] Inbox
+      </button>
+
+      <div class="mt-8 mb-2 font-bold text-sm text-center">
+        --- RECENT CHATS ---
+      </div>
+      <div class="wireframe-box nav-btn">
+        [Icon] Hello
+      </div>
+      <div class="wireframe-box nav-btn">
+        [Icon] Legacy Chat
+      </div>
+    </div>
+
+    <div class="mt-auto pt-4 border-t border-black">
+      <button class="wireframe-box w-full text-left nav-btn" onclick="switchView('view-settings')">
+        [Icon] Settings Modal
+      </button>
     </div>
   </div>
 
-  <div class="grid-container">
+  <!-- MAIN AREA CONTAINER -->
+  <main class="flex-1 flex flex-col wireframe-block overflow-hidden relative" id="main-container">
     
-    <!-- LEFT PANEL -->
-    <div class="panel">
-      <h2 style="margin:0 0 15px 0; font-size: 18px;">Dashboard</h2>
-      <p style="font-size: 14px; color: var(--text-muted); line-height: 1.5;">
-        This panel is now freed up! Since the calendar moved to the center stage, we can use this space for quick access items:
-      </p>
-      <ul style="font-size: 14px; color: var(--text-main); font-weight: 500; padding-left: 20px;">
-        <li>Daily Quick Notes</li>
-        <li>Urgent Deadlines</li>
-        <li>AI Agent Summaries</li>
-      </ul>
+    <!-- 1. CHAT VIEW -->
+    <div id="view-chat" class="app-view active">
+      <div class="h-14 border-b border-black flex items-center px-4 justify-between shrink-0 bg-white">
+        <div class="flex items-center gap-4">
+          <div class="wireframe-box">[AI Icon]</div>
+          <div><h3 class="font-bold">Operator AI</h3><p class="text-xs">[Dot] Online</p></div>
+        </div>
+        <div class="wireframe-box">[Header Controls / Menu]</div>
+      </div>
+      <div class="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50">
+        <div class="flex justify-end">
+          <div class="wireframe-box w-1/2 text-right">Hello<div class="text-xs text-gray-500 mt-2">[User Icon]</div></div>
+        </div>
+        <div class="flex justify-start">
+          <div class="wireframe-box w-1/2"><div class="text-xs text-gray-500 mb-2">[Operator AI Icon]</div>Hello! How can I help you today?</div>
+        </div>
+        <div class="flex justify-start">
+          <div class="wireframe-box w-1/2 border-dashed border-2 border-gray-400">
+            <div class="text-xs text-gray-500 mb-2">[Dynamic UI Component Space]</div>
+            (Forms, Checkboxes, Timers)
+          </div>
+        </div>
+      </div>
+      <div class="p-4 border-t border-black shrink-0 flex gap-4 items-center bg-white">
+        <div class="flex-1 wireframe-box flex justify-between items-center bg-gray-50">
+          <span class="text-gray-400">Message Operator...</span>
+          <div class="border border-black p-1 text-xs nav-btn">[Send]</div>
+        </div>
+      </div>
     </div>
 
-    <!-- CENTER PANEL -->
-    <div class="panel" style="padding: 20px 30px;">
-      
-      <!-- TOP TABS -->
-      <div class="center-nav">
-        <button class="center-tab" onclick="switchCenter('focus')">Focus Flow</button>
-        <button class="center-tab active" onclick="switchCenter('calendar')">Master Calendar</button>
-      </div>
-
-      <!-- FOCUS MODE (Hidden by default in wireframe) -->
-      <div id="focus-view" class="focus-container hidden">
-        <div class="pomodoro">
-          <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); letter-spacing: 2px;">FOCUS FLOW</div>
-          <div style="font-size: 64px; font-weight: 900; font-family: monospace;">25:00</div>
+    <!-- 2. ZEN DASHBOARD VIEW -->
+    <div id="view-zen" class="app-view bg-gray-50 p-6 overflow-y-auto">
+      <h2 class="font-bold text-xl mb-6">Zen Dashboard</h2>
+      <div class="flex gap-6">
+        <div class="w-1/3 flex flex-col gap-4">
+          <div class="wireframe-box h-48 flex items-center justify-center font-bold text-2xl flex-col bg-white">
+            <span>[Pomodoro Timer]</span>
+            <span class="text-4xl mt-2">25:00</span>
+          </div>
+          <div class="wireframe-box h-64 bg-white">
+            <div class="font-bold mb-2">Focus Tasks</div>
+            <div class="wireframe-box">[ ] Task 1</div>
+            <div class="wireframe-box">[ ] Task 2</div>
+          </div>
         </div>
-        <div class="console">
-          > operator_ai initialized.<br>
-          > Waiting for input...
+        <div class="w-2/3 flex flex-col gap-4">
+          <div class="wireframe-box h-32 bg-white">
+            <div class="font-bold mb-2">Daily Agenda</div>
+            [Timeline Component]
+          </div>
+          <div class="wireframe-box flex-1 bg-white">
+            <div class="font-bold mb-2">Notes Vault</div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="wireframe-box h-24">Note A</div>
+              <div class="wireframe-box h-24">Note B</div>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
 
-      <!-- CALENDAR MODE -->
-      <div id="calendar-view" class="calendar-container active">
+    <!-- 3. INBOX VIEW -->
+    <div id="view-inbox" class="app-view bg-gray-50 p-6 overflow-y-auto">
+      <h2 class="font-bold text-xl mb-6">Thought Inbox</h2>
+      <div class="wireframe-box bg-white mb-4 flex gap-2">
+        <span class="text-gray-400 flex-1">Quick capture thought...</span>
+        <div class="border border-black px-2">[Save]</div>
+      </div>
+      <div class="flex flex-col gap-2">
+        <div class="wireframe-box bg-white flex justify-between">
+          <span>Remember to review the architecture doc</span>
+          <span class="text-xs">[Archive]</span>
+        </div>
+        <div class="wireframe-box bg-white flex justify-between">
+          <span>Buy groceries</span>
+          <span class="text-xs">[Archive]</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. SETTINGS VIEW -->
+    <div id="view-settings" class="app-view bg-gray-50 p-6 overflow-y-auto">
+      <h2 class="font-bold text-xl mb-6">Account Settings Modal Placeholder</h2>
+      <div class="wireframe-box bg-white max-w-2xl mx-auto w-full">
+        <div class="border-b border-black pb-2 mb-4 font-bold">Profile</div>
+        <div class="wireframe-box mb-6">[User Avatar] test@example.com</div>
         
-        <div class="cal-controls">
-          <h2 class="cal-title">June 2026</h2>
-          <div class="cal-view-toggles">
-            <button class="cal-view-btn" onclick="switchCal('today')">Today</button>
-            <button class="cal-view-btn" onclick="switchCal('week')">Week</button>
-            <button class="cal-view-btn active" onclick="switchCal('month')">Month</button>
-            <button class="cal-view-btn" onclick="switchCal('year')">Year</button>
-          </div>
+        <div class="border-b border-black pb-2 mb-4 font-bold">Integrations</div>
+        <div class="wireframe-box mb-2 flex justify-between">
+          <span>Google Calendar</span>
+          <span class="border border-black px-2 nav-btn">[Connect]</span>
         </div>
-
-        <!-- TODAY MOCK -->
-        <div id="cal-today" class="view-screen">
-          <div class="today-list">
-            <div class="agenda-item">
-              <div class="agenda-time">09:00 AM</div>
-              <div class="agenda-dot" style="background: var(--g-peacock);"></div>
-              <div class="agenda-content">
-                <p class="agenda-title">CS101: Data Structures</p>
-                <p class="agenda-cal">University Classes</p>
-              </div>
-            </div>
-            <div class="agenda-item">
-              <div class="agenda-time">12:30 PM</div>
-              <div class="agenda-dot" style="background: var(--g-flamingo);"></div>
-              <div class="agenda-content">
-                <p class="agenda-title">Lunch with Sarah</p>
-                <p class="agenda-cal">Personal</p>
-              </div>
-            </div>
-            <div class="agenda-item">
-              <div class="agenda-time">03:00 PM</div>
-              <div class="agenda-dot" style="background: var(--g-sage);"></div>
-              <div class="agenda-content">
-                <p class="agenda-title">Lab Research Team Meeting</p>
-                <p class="agenda-cal">Projects</p>
-              </div>
-            </div>
-          </div>
+        <div class="wireframe-box mb-2 flex justify-between">
+          <span>Google Drive</span>
+          <span class="border border-black px-2 nav-btn">[Connect]</span>
         </div>
-
-        <!-- WEEK MOCK -->
-        <div id="cal-week" class="view-screen">
-          <div class="week-grid">
-            <!-- Mon -->
-            <div class="week-col">
-              <div class="week-header">
-                <div class="week-day-name">Mon</div>
-                <div class="week-day-num">8</div>
-              </div>
-              <div class="week-body">
-                <div class="week-event" style="background: var(--g-peacock); opacity: 0.9;">09:00 CS101</div>
-                <div class="week-event" style="background: var(--g-lavender); opacity: 0.9;">14:00 Reading</div>
-              </div>
-            </div>
-            <!-- Tue -->
-            <div class="week-col">
-              <div class="week-header">
-                <div class="week-day-name">Tue</div>
-                <div class="week-day-num" style="color: var(--accent);">9</div>
-              </div>
-              <div class="week-body">
-                <div class="week-event" style="background: var(--g-peacock); opacity: 0.9;">10:00 Physics</div>
-                <div class="week-event" style="background: var(--g-sage); opacity: 0.9;">15:00 Lab Work</div>
-                <div class="week-event" style="background: var(--g-banana); color: #000;">18:00 Gym</div>
-              </div>
-            </div>
-            <!-- Wed -->
-            <div class="week-col">
-              <div class="week-header">
-                <div class="week-day-name">Wed</div>
-                <div class="week-day-num">10</div>
-              </div>
-              <div class="week-body">
-                <div class="week-event" style="background: var(--g-peacock); opacity: 0.9;">09:00 CS101</div>
-              </div>
-            </div>
-            <!-- Thu -->
-            <div class="week-col">
-              <div class="week-header">
-                <div class="week-day-name">Thu</div>
-                <div class="week-day-num">11</div>
-              </div>
-              <div class="week-body">
-                <div class="week-event" style="background: var(--g-tomato); opacity: 0.9;">12:00 Deadline!</div>
-              </div>
-            </div>
-            <!-- Fri -->
-            <div class="week-col">
-              <div class="week-header">
-                <div class="week-day-name">Fri</div>
-                <div class="week-day-num">12</div>
-              </div>
-              <div class="week-body">
-                <div class="week-event" style="background: var(--g-flamingo); opacity: 0.9;">19:00 Party</div>
-              </div>
-            </div>
-            <!-- Sat -->
-            <div class="week-col">
-              <div class="week-header">
-                <div class="week-day-name">Sat</div>
-                <div class="week-day-num">13</div>
-              </div>
-              <div class="week-body"></div>
-            </div>
-            <!-- Sun -->
-            <div class="week-col">
-              <div class="week-header">
-                <div class="week-day-name">Sun</div>
-                <div class="week-day-num">14</div>
-              </div>
-              <div class="week-body">
-                <div class="week-event" style="background: var(--g-grape); opacity: 0.9;">All Day: Hackathon</div>
-              </div>
-            </div>
-          </div>
+        
+        <div class="border-b border-black pb-2 mb-4 mt-6 font-bold">API Keys</div>
+        <div class="wireframe-box mb-2 flex justify-between">
+          <span>Gemini API Key</span>
+          <span class="border border-black px-2 nav-btn">[Add]</span>
         </div>
-
-        <!-- MONTH MOCK -->
-        <div id="cal-month" class="view-screen active">
-          <div class="month-grid">
-            <!-- Headers -->
-            <div class="month-day-header">Sun</div>
-            <div class="month-day-header">Mon</div>
-            <div class="month-day-header">Tue</div>
-            <div class="month-day-header">Wed</div>
-            <div class="month-day-header">Thu</div>
-            <div class="month-day-header">Fri</div>
-            <div class="month-day-header">Sat</div>
-            
-            <!-- Week 1 -->
-            <div class="month-cell"><div class="month-date-num">31</div></div>
-            <div class="month-cell active-month">
-              <div class="month-date-num">1</div>
-              <div class="month-event" style="background: var(--g-peacock);">9a CS101</div>
-            </div>
-            <div class="month-cell active-month"><div class="month-date-num">2</div></div>
-            <div class="month-cell active-month"><div class="month-date-num">3</div></div>
-            <div class="month-cell active-month">
-              <div class="month-date-num">4</div>
-              <div class="month-event" style="background: var(--g-sage);">3p Lab</div>
-            </div>
-            <div class="month-cell active-month"><div class="month-date-num">5</div></div>
-            <div class="month-cell active-month"><div class="month-date-num">6</div></div>
-
-            <!-- Week 2 -->
-            <div class="month-cell active-month"><div class="month-date-num">7</div></div>
-            <div class="month-cell active-month">
-              <div class="month-date-num">8</div>
-              <div class="month-event" style="background: var(--g-peacock);">9a CS101</div>
-            </div>
-            <div class="month-cell active-month" style="background: #eef2ff;">
-              <div class="month-date-num" style="color: var(--accent); width: 24px; height: 24px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">9</div>
-              <div class="month-event" style="background: var(--g-flamingo);">12p Lunch</div>
-              <div class="month-event" style="background: var(--g-banana); color: #000;">6p Gym</div>
-            </div>
-            <div class="month-cell active-month"><div class="month-date-num">10</div></div>
-            <div class="month-cell active-month">
-              <div class="month-date-num">11</div>
-              <div class="month-event" style="background: var(--g-tomato);">Midnight Deadline</div>
-            </div>
-            <div class="month-cell active-month"><div class="month-date-num">12</div></div>
-            <div class="month-cell active-month">
-              <div class="month-date-num">13</div>
-              <div class="month-event" style="background: var(--g-grape);">Hackathon</div>
-            </div>
-
-            <!-- Week 3, 4, 5 (Simplified empty cells to fill grid) -->
-            <div class="month-cell active-month"><div class="month-date-num">14</div><div class="month-event" style="background: var(--g-grape);">Hackathon</div></div>
-            <div class="month-cell active-month"><div class="month-date-num">15</div></div>
-            <div class="month-cell active-month"><div class="month-date-num">16</div></div>
-            <div class="month-cell active-month"><div class="month-date-num">17</div></div>
-            <div class="month-cell active-month"><div class="month-date-num">18</div></div>
-            <div class="month-cell active-month"><div class="month-date-num">19</div></div>
-            <div class="month-cell active-month"><div class="month-date-num">20</div></div>
-
-            <div class="month-cell active-month"><div class="month-date-num">21</div></div>
-            <div class="month-cell active-month"><div class="month-date-num">22</div></div>
-            <div class="month-cell active-month"><div class="month-date-num">23</div></div>
-            <div class="month-cell active-month"><div class="month-date-num">24</div></div>
-            <div class="month-cell active-month"><div class="month-date-num">25</div></div>
-            <div class="month-cell active-month"><div class="month-date-num">26</div></div>
-            <div class="month-cell active-month"><div class="month-date-num">27</div></div>
-
-            <div class="month-cell active-month"><div class="month-date-num">28</div></div>
-            <div class="month-cell active-month"><div class="month-date-num">29</div></div>
-            <div class="month-cell active-month"><div class="month-date-num">30</div></div>
-            <div class="month-cell"><div class="month-date-num">1</div></div>
-            <div class="month-cell"><div class="month-date-num">2</div></div>
-            <div class="month-cell"><div class="month-date-num">3</div></div>
-            <div class="month-cell"><div class="month-date-num">4</div></div>
-          </div>
-        </div>
-
-        <!-- YEAR MOCK -->
-        <div id="cal-year" class="view-screen">
-          <div class="year-grid" id="year-grid-gen">
-            <!-- JS will generate 12 mini months here -->
-          </div>
-        </div>
-
-      </div>
-
-    </div>
-
-    <!-- RIGHT PANEL -->
-    <div class="panel">
-      <h2 style="margin:0 0 15px 0; font-size: 18px;">Master Tasks</h2>
-      <!-- Simple Task List Mock -->
-      <div style="display: flex; gap: 10px; align-items: center; padding: 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px;">
-        <div style="width: 16px; height: 16px; border: 2px solid var(--accent); border-radius: 4px;"></div>
-        <span style="font-size: 14px; font-weight: 500;">Finish physics report</span>
-      </div>
-      <div style="display: flex; gap: 10px; align-items: center; padding: 10px; border: 1px solid var(--border); border-radius: 8px;">
-        <div style="width: 16px; height: 16px; border: 2px solid var(--border); border-radius: 4px; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px;">✓</div>
-        <span style="font-size: 14px; font-weight: 500; color: var(--text-muted); text-decoration: line-through;">Read Chapter 4</span>
       </div>
     </div>
-  </div>
+
+  </main>
 
   <script>
-    function switchCenter(view) {
-      document.querySelectorAll('.center-tab').forEach(t => t.classList.remove('active'));
-      event.target.classList.add('active');
-      
-      document.getElementById('focus-view').classList.add('hidden');
-      document.getElementById('focus-view').classList.remove('active');
-      document.getElementById('calendar-view').classList.remove('active');
-      document.getElementById('calendar-view').style.display = 'none';
-
-      if(view === 'focus') {
-        document.getElementById('focus-view').classList.remove('hidden');
-        document.getElementById('focus-view').classList.add('active');
-      } else {
-        document.getElementById('calendar-view').classList.add('active');
-        document.getElementById('calendar-view').style.display = 'flex';
-      }
+    // Navigation Logic
+    function switchView(viewId) {
+      document.querySelectorAll('.app-view').forEach(el => el.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
     }
 
-    function switchCal(view) {
-      document.querySelectorAll('.cal-view-btn').forEach(b => b.classList.remove('active'));
-      event.target.classList.add('active');
+    // Feedback System Logic
+    let comments = [];
+    let commentIdCounter = 0;
 
-      document.querySelectorAll('.view-screen').forEach(s => s.classList.remove('active'));
-      document.getElementById('cal-' + view).classList.add('active');
-    }
-
-    // Generate Year Mini Grids
-    const yearContainer = document.getElementById('year-grid-gen');
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    months.forEach(month => {
-      let html = `<div class="mini-month"><h3 class="mini-month-title">${month}</h3><div class="mini-month-days">`;
-      for(let i=0; i<31; i++) {
-        const rand = Math.random();
-        let classes = 'mini-day';
-        if(rand > 0.8) classes += ' has-event';
-        if(rand > 0.95) classes += ' has-many';
-        html += `<div class="${classes}"></div>`;
-      }
-      html += `</div></div>`;
-      yearContainer.innerHTML += html;
-    });
-
-    // VISUAL FEEDBACK / COMMENTS FEATURE
-    let isDragging = false;
-    let dragTarget = null;
-    let offsetX = 0, offsetY = 0;
-
-    document.body.addEventListener('contextmenu', function(e) {
-      if (e.target.closest('.sticky-note') || e.target.closest('#tools-bar') || isDragging) return;
+    document.addEventListener('contextmenu', (e) => {
+      // Ignore clicks on existing comment boxes or the toolbar
+      if(e.target.closest('#feedback-bar') || e.target.closest('.comment-box')) return;
       e.preventDefault();
       
-      const note = document.createElement('div');
-      note.className = 'sticky-note';
-      note.style.left = e.pageX + 'px';
-      note.style.top = e.pageY + 'px';
+      const x = e.clientX;
+      const y = e.clientY;
+      const currentView = document.querySelector('.app-view.active').id;
       
-      note.innerHTML = `
-        <div class="sticky-note-header">
-          <span>Feedback Note</span>
-          <span style="cursor:pointer;" onclick="this.parentElement.parentElement.remove()">X</span>
-        </div>
-        <textarea placeholder="Type your feedback here..."></textarea>
-      `;
+      // Get structural info about where they clicked
+      let targetInfo = e.target.tagName.toLowerCase();
+      if(e.target.className && typeof e.target.className === 'string') {
+        const classes = e.target.className.split(' ').filter(c => c.includes('wireframe')).join('.');
+        if(classes) targetInfo += '.' + classes;
+      }
       
-      const header = note.querySelector('.sticky-note-header');
-      header.addEventListener('mousedown', function(me) {
-        if(me.target.tagName === 'SPAN' && me.target.innerText === 'X') return;
-        isDragging = true;
-        dragTarget = note;
-        const rect = note.getBoundingClientRect();
-        offsetX = me.clientX - rect.left;
-        offsetY = me.clientY - rect.top;
-      });
+      const id = ++commentIdCounter;
+      const commentObj = {
+        id: id,
+        view: currentView,
+        x: x,
+        y: y,
+        target: targetInfo,
+        text: ''
+      };
       
-      document.body.appendChild(note);
-      note.querySelector('textarea').focus();
+      comments.push(commentObj);
+      renderCommentBox(commentObj);
     });
 
-    document.addEventListener('mousemove', function(e) {
-      if (!isDragging || !dragTarget) return;
-      dragTarget.style.left = (e.clientX - offsetX) + 'px';
-      dragTarget.style.top = (e.clientY - offsetY) + 'px';
-    });
+    function renderCommentBox(comment) {
+      const box = document.createElement('div');
+      box.className = 'comment-box';
+      box.style.left = comment.x + 'px';
+      box.style.top = comment.y + 'px';
+      box.id = 'comment-' + comment.id;
 
-    document.addEventListener('mouseup', function() {
-      isDragging = false;
-      dragTarget = null;
-    });
+      // Header with close button
+      const header = document.createElement('div');
+      header.className = 'comment-header';
+      
+      const title = document.createElement('span');
+      title.innerText = 'Feedback Note';
+      title.style.fontSize = '12px';
+      title.style.fontWeight = 'bold';
 
-    function clearAllNotes() {
-      document.querySelectorAll('.sticky-note').forEach(n => n.remove());
+      const closeBtn = document.createElement('span');
+      closeBtn.className = 'comment-close';
+      closeBtn.innerHTML = '&times;';
+      closeBtn.title = "Remove Comment";
+      closeBtn.onclick = () => {
+        box.remove();
+        comments = comments.filter(c => c.id !== comment.id);
+      };
+
+      header.appendChild(title);
+      header.appendChild(closeBtn);
+
+      // Body with text area
+      const body = document.createElement('div');
+      body.className = 'comment-body';
+
+      const textarea = document.createElement('textarea');
+      textarea.className = 'comment-textarea';
+      textarea.placeholder = 'Type your structural changes or feedback here...';
+      textarea.value = comment.text;
+      
+      // Update data model as user types
+      textarea.oninput = (e) => {
+        comment.text = e.target.value;
+      };
+
+      // Prevent native context menu from opening inside the text area
+      textarea.addEventListener('contextmenu', (e) => e.stopPropagation());
+
+      body.appendChild(textarea);
+      box.appendChild(header);
+      box.appendChild(body);
+
+      document.body.appendChild(box);
+      
+      // Auto-focus the new textarea
+      textarea.focus();
     }
 
-    function exportComments() {
-      const notes = Array.from(document.querySelectorAll('.sticky-note')).map(n => {
-        return n.querySelector('textarea').value;
-      }).filter(v => v.trim() !== '');
-      if (notes.length === 0) return alert('No comments to export!');
+    function copyComments() {
+      const validComments = comments.filter(c => c.text.trim() !== '');
       
-      const textToCopy = 'Feedback:\\n\\n' + notes.join('\\n\\n');
-      navigator.clipboard.writeText(textToCopy).then(() => {
-        const btn = document.querySelector('#tools-bar button');
-        const originalText = btn.innerText;
-        btn.innerText = 'Copied to Clipboard!';
-        setTimeout(() => btn.innerText = originalText, 2000);
+      if (validComments.length === 0) {
+        alert("No comments with text to copy. Right-click, type a comment, then try again.");
+        return;
+      }
+
+      let output = `[WIREFRAME FEEDBACK PROMPT]\n`;
+      output += `Here is the structured layout feedback mapped directly from the wireframe:\n\n`;
+
+      validComments.forEach((c, index) => {
+        output += `### Component Update #${index + 1}\n`;
+        output += `- View Context: ${c.view.replace('view-', '').toUpperCase()}\n`;
+        output += `- Element Target: <${c.target}>\n`;
+        output += `- Position: (X: ${c.x}, Y: ${c.y})\n`;
+        output += `- Instructions: ${c.text.trim()}\n\n`;
+      });
+
+      navigator.clipboard.writeText(output).then(() => {
+        const btn = document.querySelector('button[onclick="copyComments()"]');
+        const oldText = btn.innerText;
+        btn.innerText = "✓ Copied!";
+        btn.classList.add("bg-green-300");
+        setTimeout(() => {
+          btn.innerText = oldText;
+          btn.classList.remove("bg-green-300");
+        }, 2000);
       }).catch(err => {
-        prompt('Copy the feedback below:', textToCopy);
+        alert("Failed to copy: " + err);
       });
     }
   </script>

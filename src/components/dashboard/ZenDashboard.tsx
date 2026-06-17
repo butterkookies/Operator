@@ -78,7 +78,7 @@ export function ZenDashboard({ session }: { session: Session }) {
   };
 
   return (
-    <div className="h-full flex flex-col md:flex-row gap-6 p-4 md:p-0 overflow-y-auto md:overflow-hidden">
+    <div className="h-full flex flex-col md:flex-row gap-6 p-4 md:p-6 overflow-y-auto md:overflow-hidden">
       {/* Left Column: Pomodoro & Calendar */}
       <div className="flex flex-col gap-6 md:w-1/2 lg:w-1/3 shrink-0">
         <PomodoroEngine 
@@ -88,13 +88,13 @@ export function ZenDashboard({ session }: { session: Session }) {
           onActiveTaskChange={setActiveTaskId}
           onSessionComplete={handleSessionComplete}
         />
-        <div className="flex-1 bg-white rounded-2xl border border-gray-200 shadow-sm p-4 overflow-hidden flex flex-col">
+        <div className="flex-1 bg-neutral-900 rounded-2xl border border-neutral-700 shadow-sm p-4 overflow-hidden flex flex-col">
           <DailyAgendaWidget session={session} />
         </div>
       </div>
 
       {/* Right Column: Focus Tasks */}
-      <div className="flex-1 bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex flex-col overflow-hidden">
+      <div className="flex-1 bg-neutral-900 rounded-2xl border border-neutral-700 shadow-sm p-4 flex flex-col overflow-hidden">
         <FocusTasksWidget 
           session={session} 
           tasks={tasks} 
